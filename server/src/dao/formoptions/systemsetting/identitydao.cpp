@@ -1,4 +1,4 @@
-#include "identitydao.h"
+﻿#include "identitydao.h"
 #include <QUuid>
 
 IdentityDao::IdentityDao()
@@ -96,7 +96,7 @@ bool IdentityDao::deleteIdentityResource(QJsonObject objWhere)
 }
 
 //验证密码
-bool IdentityDao::queryPwdIdentityResource(QJsonArray &resultArray, QJsonObject objWhere){
+bool IdentityDao::queryPwdIdentityResource(QJsonObject &resultObj, QJsonObject objWhere){
 
     QJsonObject objReturn;
     QSqlQuery queryResult;
@@ -117,18 +117,16 @@ bool IdentityDao::queryPwdIdentityResource(QJsonArray &resultArray, QJsonObject 
     {
         while (queryResult.next())
         {
-            QJsonObject obj;
             for (int i = 0; i < queryResult.record().count(); ++i)
             {
                 auto name = queryResult.record().fieldName(i);
                 QVariant temp = queryResult.value(name);
-                obj.insert(toHump(name),queryResult.value(name).toString());
+                resultObj.insert(toHump(name),queryResult.value(name).toString());
             }
-            resultArray.push_back(obj);
         }
     }
 
-    if(resultArray.size() == 0)
+    if(resultObj.isEmpty())
     {
         m_lastError = "用户名或密码不正确";
         return false;

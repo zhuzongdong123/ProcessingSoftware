@@ -18,6 +18,11 @@ public:
      * @return AppDatabaseBase* 返回类的实例指针
      */
     static AppDatabaseBase* getInstance();
+
+    //用户信息
+    QString m_userName;
+    QString m_userId;
+    QString m_userType;
 };
 
 #endif // APPDATABASEBASE_H

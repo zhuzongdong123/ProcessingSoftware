@@ -1,4 +1,4 @@
-#include "identitycontroller.h"
+﻿#include "identitycontroller.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -44,6 +44,10 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
             msg = dao.getLastError();
             code = 500;
         }
+        else
+        {
+             retObj.insert("data",arr);
+        }
     }
     else if("add" == strAction || "update" == strAction) //增加
     {
@@ -53,27 +57,28 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
             msg = dao.m_lastError;
             code = 500;
         }
-
     }
     else if("del" == strAction) //删除
     {
-
         result = dao.deleteIdentityResource(obj);
         if(!result)
         {
             msg = dao.m_lastError;
             code = 500;
         }
-
     }
     else if("queryPwd" == strAction)  //验证密码
     {
-
-        result = dao.queryPwdIdentityResource(arr, obj);
+        QJsonObject returnObj;
+        result = dao.queryPwdIdentityResource(returnObj, obj);
         if(!result)
         {
             msg = dao.m_lastError;
             code = 500;
+        }
+        else
+        {
+             retObj.insert("data",returnObj);
         }
     }
     else
@@ -84,7 +89,6 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
     retObj.insert("success",result);
     retObj.insert("message",msg);
     retObj.insert("code",code);
-    retObj.insert("data",arr);
     QJsonDocument doc;
     doc.setObject(retObj);
     response.write(doc.toJson());

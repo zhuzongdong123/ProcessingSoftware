@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file basicsettings.h
  * @brief   身份相关数据库操作
  * @author 马存亮
@@ -36,7 +36,7 @@ public:
     /**
     * @brief queryPwdIdentityResource 验证密码
     */
-    bool queryPwdIdentityResource(QJsonArray &resultArray, QJsonObject objWhere);
+    bool queryPwdIdentityResource(QJsonObject &resultObj, QJsonObject objWhere);
 
     QString m_tableName = "auth_identity"; //表名
 private:

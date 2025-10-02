@@ -27,6 +27,13 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+DISTFILES += \
+    app.rc \
+    tubiao.ico
+RC_FILE += app.rc
+RESOURCES += \
+    myicon.qrc
+
 #临时文件存放位置
 MOC_DIR         = ./temp/moc
 UI_DIR          = ./temp/UI

@@ -29,6 +29,7 @@ private slots:
     void on_checkBox_rememberPassword_stateChanged(int arg1); 
     void on_cancelButton_clicked(); 
     void slt_requestFinishedSlot(QNetworkReply *networkReply);
+    void slt_logout();
 
 private:
     Ui::LoginWidget *ui; 

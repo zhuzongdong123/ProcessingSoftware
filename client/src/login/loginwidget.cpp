@@ -6,6 +6,7 @@
 #include <QFile> 
 #include <QCryptographicHash> 
 #include <QDesktopWidget>
+#include "appdatabasebase.h"
  
 LoginWidget::LoginWidget(QWidget *parent) : 
     QWidget(parent), 
@@ -22,6 +23,7 @@ LoginWidget::LoginWidget(QWidget *parent) :
     //绑定信号槽
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &LoginWidget::slt_requestFinishedSlot);
     connect(ui->closeBtn,&QPushButton::clicked,this,&LoginWidget::close);
+    connect(ui->passwordEdit,&QLineEdit::returnPressed,this,&LoginWidget::on_loginButton_clicked);
     
     // 设置窗口属性 
     setWindowTitle("登录"); 
@@ -60,6 +62,7 @@ void LoginWidget::showEvent(QShowEvent *event)
 {
     ui->loginButton->setText("登录");
     ui->loginButton->setEnabled(true);
+    ui->usernameEdit->setFocus();
 }
 
 void LoginWidget::closeEvent(QCloseEvent *event)
@@ -205,6 +208,11 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
             auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
             if(m_restFulApi.replyResultCheck(obj,networkReply))
             {
+                //保存用户的基础信息
+                AppDatabaseBase::getInstance()->m_userName = obj.value("data").toObject().value("name").toString();
+                AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
+                AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
+
                 qDebug() << "登录成功";
                 ui->errorTip->setText("登录成功");
 
@@ -217,6 +225,7 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
 
                 m_mainWindow = new MainWindowWidget();
                 connect(m_mainWindow,&MainWindowWidget::sig_show,this,&LoginWidget::close);
+                connect(m_mainWindow,&MainWindowWidget::sig_logout,this,&LoginWidget::slt_logout);
                 m_mainWindow->showFullScreen();
             }
             else
@@ -236,4 +245,18 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
         }
         networkReply->deleteLater();
     }
+}
+
+void LoginWidget::slt_logout()
+{
+    if(nullptr != m_mainWindow)
+    {
+        m_mainWindow->deleteLater();
+        m_mainWindow = nullptr;
+    }
+
+    ui->usernameEdit->clear();
+    ui->passwordEdit->clear();
+    ui->errorTip->clear();
+    this->show();
 }

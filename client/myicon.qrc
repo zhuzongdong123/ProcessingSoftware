@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/image/allData.png</file>
+        <file>resources/image/datamanager-normal.png</file>
+        <file>resources/image/datamanager-select.png</file>
+        <file>resources/image/sysmanager-normal.png</file>
+        <file>resources/image/sysmanager-select.png</file>
+        <file>resources/image/usermanager-normal.png</file>
+        <file>resources/image/usermanager-select.png</file>
+        <file>resources/image/icon-close.png</file>
+        <file>resources/image/icon-close-select.png</file>
+        <file>resources/image/logout.png</file>
+        <file>resources/image/message.png</file>
+        <file>resources/image/tubiao.ico</file>
+        <file>resources/image/user.png</file>
+        <file>resources/image/help-o.png</file>
+        <file>resources/image/handleData.png</file>
+        <file>resources/image/unhandleData.png</file>
+        <file>resources/image/export.png</file>
+        <file>resources/image/inport.png</file>
+    </qresource>
+    <qresource prefix="/qss"/>
+</RCC>
