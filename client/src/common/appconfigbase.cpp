@@ -59,6 +59,8 @@ void AppConfigBase::readConfig(QString path)
         m_configIniRead->deleteLater();
     m_configIniRead = new QSettings(fileName, QSettings::IniFormat,this);
     m_configIniRead->setIniCodec(QTextCodec::codecForName("utf-8"));
+    updateConfigSetting("server","port_business",QString::number(8083));
+    updateConfigSetting("server","port_bag",QString::number(8898));
 }
 
 void AppConfigBase::readCameraConfig(QString path)
@@ -84,7 +86,7 @@ void AppConfigBase::updateConfigSetting(QSettings* setting, QString section, QSt
 void AppConfigBase::updateConfigSetting(QString section, QString key, QString value)
 {
     QString returnValue = m_configIniRead->value("/" + section + "/" + key).toString();
-    if(returnValue == "" || returnValue != QString(value))
+    if(returnValue == "")
         m_configIniRead->setValue("/" + section + "/" + key, value);
     m_configIniRead->sync();//写入配置文件
 }

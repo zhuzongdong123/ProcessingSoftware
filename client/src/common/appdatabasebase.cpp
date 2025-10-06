@@ -10,3 +10,13 @@ AppDatabaseBase *AppDatabaseBase::getInstance()
     //qDebug() << "end " << pAppDatabaseBase;
     return pAppDatabaseBase;
 }
+
+QString AppDatabaseBase::getBusinessServerUrl()
+{
+    return QString("http://%1:%2").arg(m_serverIp).arg(m_businessPort);
+}
+
+QString AppDatabaseBase::getBagServerUrl()
+{
+    return QString("http://%1:%2").arg(m_serverIp).arg(m_bagPort);
+}

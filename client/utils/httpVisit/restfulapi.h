@@ -20,6 +20,24 @@
 //身份信息更新插入
 #define IDENTITY_AUTHENTICATION_ADD "/controller/identity/authentication/add"
 
+//*****************系统信息相关
+//获取全部系统信息(简化版)
+#define API_PERCENT_INFO_GET "/api/v1/system/info/percent"
+
+//*****************bag文件相关
+//获取bag列表
+#define API_BAG_LIST_GET "/api/v1/bags/"
+//处理bag文件
+#define API_BAG_FILE_HANDLE "/api/v1/bags/process/%1"
+//删除bag文件
+#define API_BAG_FILE_DEL "/api/v1/bags/delete/%1"
+//获取所有文件的标注状态
+#define API_BAG_ANNOTATION_STATUS_GET_ALL "/api/v1/bags/annotation_status/"
+//设置文件的标注状态
+#define API_BAG_ANNOTATION_STATUS_SET "/api/v1/bags/%1/annotation_status"
+//获取文件的标注状态
+#define API_BAG_ANNOTATION_STATUS_GET "/api/v1/bags/%1/annotation_status"
+
 /*
  *提供restfull便携接口类外使用
  * RestFullApi *myApi=new RestFullApi();
@@ -28,6 +46,13 @@
 enum ReplyType
 {
     LOGIN,//登录
+    PERCENT_INFO_GET,
+    BAG_LIST_GET,
+    BAG_FILE_HANDLE,
+    BAG_FILE_DEL,
+    BAG_ANNOTATION_STATUS_GET_ALL,
+    BAG_ANNOTATION_STATUS_SET,
+    BAG_ANNOTATION_STATUS_GET,
 };
 
 enum class VisitType

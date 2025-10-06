@@ -1,4 +1,5 @@
 FORMS += \
+    $$PWD/workarea/datamanager/annotationdatapage.ui \
     $$PWD/workarea/datamanager/datamanager.ui \
     $$PWD/login/loginwidget.ui \
     $$PWD/mainwindow/mainwindowwidget.ui \
@@ -10,6 +11,7 @@ HEADERS += \
     $$PWD/common/appconfigbase.h \
     $$PWD/common/appdatabasebase.h \
     $$PWD/common/appeventbase.h \
+    $$PWD/workarea/datamanager/annotationdatapage.h \
     $$PWD/workarea/datamanager/datamanager.h \
     $$PWD/login/loginwidget.h \
     $$PWD/mainwindow/mainwindowwidget.h \
@@ -21,6 +23,7 @@ SOURCES += \
     $$PWD/common/appconfigbase.cpp \
     $$PWD/common/appdatabasebase.cpp \
     $$PWD/common/appeventbase.cpp \
+    $$PWD/workarea/datamanager/annotationdatapage.cpp \
     $$PWD/workarea/datamanager/datamanager.cpp \
     $$PWD/login/loginwidget.cpp \
     $$PWD/mainwindow/mainwindowwidget.cpp \

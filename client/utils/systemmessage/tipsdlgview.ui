@@ -16,8 +16,20 @@
     <height>16777215</height>
    </size>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>-1</pointsize>
+    <weight>75</weight>
+    <bold>true</bold>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#TipsDlgView{background-color: rgb(54, 64, 74);}
+
+QWidget{font-size:18px;color:rgb(255,255,255)}</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,6">
    <property name="leftMargin">
@@ -69,6 +81,12 @@
        <property name="text">
         <string/>
        </property>
+       <property name="pixmap">
+        <pixmap resource="../../myicon.qrc">:/resources/image/tip.png</pixmap>
+       </property>
+       <property name="scaledContents">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
      <item>
@@ -90,7 +108,7 @@
        <item>
         <widget class="QLabel" name="TipTitle">
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">font:18px &quot;微软雅黑&quot;;</string>
          </property>
          <property name="text">
           <string>操作提示</string>
@@ -131,10 +149,20 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">border:none;</string>
          </property>
          <property name="text">
           <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../../myicon.qrc">
+           <normaloff>:/resources/image/icon-close.png</normaloff>:/resources/image/icon-close.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -172,6 +200,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../myicon.qrc"/>
+ </resources>
  <connections/>
 </ui>

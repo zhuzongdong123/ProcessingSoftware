@@ -1,5 +1,6 @@
 ﻿#include "mainwindowwidget.h"
 #include "ui_mainwindowwidget.h"
+#include "annotationdatapage.h"
 
 MainWindowWidget::MainWindowWidget(QWidget *parent) :
     QWidget(parent),
@@ -37,6 +38,7 @@ void MainWindowWidget::showDefaultPage()
     if(nullptr == m_dataManagerPage)
     {
         m_dataManagerPage = new DataManager(ui->stackedWidget);
+        connect(m_dataManagerPage,&DataManager::sig_turn2BagDetialPage,this,&MainWindowWidget::sig_turn2BagDetialPage);
         ui->stackedWidget->addWidget(m_dataManagerPage);
     }
 
@@ -45,4 +47,15 @@ void MainWindowWidget::showDefaultPage()
         ui->stackedWidget->setCurrentWidget(m_dataManagerPage);
         ui->menuBar->setMenuCheck(MenuBar::MenuType::DATA_MANAGER);
     }
+}
+
+void MainWindowWidget::sig_turn2BagDetialPage(QString id)
+{
+    if(nullptr == m_annotationDataPage)
+    {
+        m_annotationDataPage = new AnnotationDataPage(ui->stackedWidget);
+        ui->stackedWidget->addWidget(m_annotationDataPage);
+    }
+    ui->stackedWidget->setCurrentWidget(m_annotationDataPage);
+    ui->menuBar->hide();
 }

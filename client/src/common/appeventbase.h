@@ -37,6 +37,7 @@ public:
      */
     static AppEventBase* getInstance();
 signals:
+    void sig_sendServerStatus(bool status);
 };
 
 #endif // APPEVENTBASE_H

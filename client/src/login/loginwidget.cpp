@@ -7,6 +7,7 @@
 #include <QCryptographicHash> 
 #include <QDesktopWidget>
 #include "appdatabasebase.h"
+#include "appconfigbase.h"
  
 LoginWidget::LoginWidget(QWidget *parent) : 
     QWidget(parent), 
@@ -15,7 +16,7 @@ LoginWidget::LoginWidget(QWidget *parent) :
 { 
     ui->setupUi(this); 
 
-    //setWindowFlags(Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
+    setWindowFlags(Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
     
     // 初始化设置 
     m_settings = new QSettings("MyCompany", "MyApp");
@@ -39,6 +40,9 @@ LoginWidget::LoginWidget(QWidget *parent) :
     QDesktopWidget* desktop = QApplication::desktop(); // 获取桌面部件
     // 计算居中坐标：(屏幕宽度-窗口宽度)/2，(屏幕高度-窗口高度)/2
     move((desktop->width() - this->width())/2, (desktop->height() - this->height())/2);
+
+    //读取配置文件
+    AppConfigBase::getInstance()->readConfig();
 } 
  
 LoginWidget::~LoginWidget() 
@@ -79,7 +83,7 @@ void LoginWidget::on_loginButton_clicked()
     QString username = ui->usernameEdit->text(); 
     QString password = ui->passwordEdit->text(); 
     QString serverIP = ui->serverIp->text();
-    QString port = "8083";
+    QString port = AppConfigBase::getInstance()->readConfigSettings("port","port_business","8083");
     
     if (username.isEmpty()  || password.isEmpty())  { 
         ui->errorTip->setText("用户名和密码不能为空");
@@ -136,23 +140,23 @@ void LoginWidget::saveSettings()
 { 
     // 保存服务器设置 
     m_settings->setValue("Server/IP", ui->serverIp->text());
-    m_settings->setValue("Server/Port", "8083");
+    m_settings->setValue("Server/Port", AppConfigBase::getInstance()->readConfigSettings("port","port_business","8083"));
     
     // 保存记住密码状态 
-    m_settings->setValue("Login/RememberPassword", ui->checkBox_rememberPassword->isChecked());
+    //m_settings->setValue("Login/RememberPassword", ui->checkBox_rememberPassword->isChecked());
     
-    // 如果勾选了记住密码，则保存用户名和加密后的密码 
-    if (ui->checkBox_rememberPassword->isChecked()) { 
-        m_settings->setValue("Login/Username", ui->usernameEdit->text());
+//    // 如果勾选了记住密码，则保存用户名和加密后的密码
+//    if (ui->checkBox_rememberPassword->isChecked()) {
+//        m_settings->setValue("Login/Username", ui->usernameEdit->text());
         
-        // 简单加密密码 (实际应用中应使用更安全的加密方式) 
-        QByteArray passwordBytes = ui->passwordEdit->text().toUtf8(); 
-        QByteArray hashBytes = QCryptographicHash::hash(passwordBytes, QCryptographicHash::Sha256); 
-        m_settings->setValue("Login/PasswordHash", hashBytes.toHex());
-    } else { 
-        // 不记住密码，清除保存的密码 
-        m_settings->remove("Login/PasswordHash");
-    } 
+//        // 简单加密密码 (实际应用中应使用更安全的加密方式)
+//        QByteArray passwordBytes = ui->passwordEdit->text().toUtf8();
+//        QByteArray hashBytes = QCryptographicHash::hash(passwordBytes, QCryptographicHash::Sha256);
+//        m_settings->setValue("Login/PasswordHash", hashBytes.toHex());
+//    } else {
+//        // 不记住密码，清除保存的密码
+//        m_settings->remove("Login/PasswordHash");
+//    }
     
     m_settings->sync();
 } 
@@ -165,7 +169,7 @@ void LoginWidget::loadSettings()
     
     // 加载登录设置 
     bool rememberPassword = m_settings->value("Login/RememberPassword", false).toBool();
-    ui->checkBox_rememberPassword->setChecked(rememberPassword); 
+   // ui->checkBox_rememberPassword->setChecked(rememberPassword);
     
     // 如果记住密码，则加载用户名 
     if (rememberPassword) { 
@@ -212,6 +216,13 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 AppDatabaseBase::getInstance()->m_userName = obj.value("data").toObject().value("name").toString();
                 AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
                 AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
+                AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
+
+                //测试代码
+                AppDatabaseBase::getInstance()->m_serverIp = "111.34.71.210";
+
+                AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
+                AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
 
                 qDebug() << "登录成功";
                 ui->errorTip->setText("登录成功");

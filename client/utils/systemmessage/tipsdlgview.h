@@ -24,7 +24,7 @@ public:
         @param	无
         @return	无
     */
-    void startTimer(int time = 2000);
+    void startTimer(int time = 3500);
 
     QTimer* getTimer();
 

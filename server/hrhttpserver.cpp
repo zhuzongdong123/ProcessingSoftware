@@ -19,6 +19,30 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
     QByteArray path=request.getPath();
     QList<QByteArray> urlList = path.split('/');
     int iUrlSize = urlList.size();
+
+
+    //////////////////////////////////////
+    if(path.contains("/api/v1/system/info/percent"))
+    {
+        QJsonObject retObj;
+        retObj.insert("status","sucess");
+        retObj.insert("message","操作成功");
+        retObj.insert("code",200);
+        QJsonObject dataObj;
+        dataObj.insert("cpu",50);
+        dataObj.insert("memory",40.8);
+        dataObj.insert("disk",100);
+        retObj.insert("data",dataObj);
+        QJsonDocument doc;
+        doc.setObject(retObj);
+        response.write(doc.toJson());
+        return ;
+    }
+    ////////////////////////////////////////////
+
+
+
+
     if(iUrlSize < 5)
     {
         QJsonObject retObj;

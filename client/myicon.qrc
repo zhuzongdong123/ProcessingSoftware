@@ -18,6 +18,8 @@
         <file>resources/image/unhandleData.png</file>
         <file>resources/image/export.png</file>
         <file>resources/image/inport.png</file>
+        <file>resources/image/tip.png</file>
+        <file>resources/image/serverError.png</file>
     </qresource>
     <qresource prefix="/qss"/>
 </RCC>

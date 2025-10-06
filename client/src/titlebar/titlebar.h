@@ -2,6 +2,8 @@
 #define TITLEBAR_H
 
 #include <QWidget>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
 
 namespace Ui {
 class TitleBar;
@@ -27,6 +29,9 @@ private slots:
 
 private:
     Ui::TitleBar *ui;
+    bool m_isCreateAnimation = false;
+    QGraphicsOpacityEffect *m_effect = nullptr;
+    QPropertyAnimation *m_anim = nullptr;
 };
 
 #endif // TITLEBAR_H

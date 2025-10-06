@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1237</width>
+    <width>1243</width>
     <height>601</height>
    </rect>
   </property>
@@ -35,7 +35,71 @@
       <string notr="true">QWidget{font-size:18px;color:rgb(255,255,255)}
 
 #widget{background-color: rgb(38, 46, 53);}
-</string>
+
+
+/*滚动条样式 START========================================================================*/
+/*纵向滚动条样式*/
+QScrollBar:vertical{
+	border-style: solid;
+	/* 纵轴-总体背景颜色 */
+    background:transparent;
+	/* 纵轴-总体背景圆角 */
+    border-radius: 5px;
+	/* 纵轴-总体宽度 */
+    min-width: 10px;
+    max-width: 10px;
+}
+QScrollBar::handle:vertical{
+	/* 纵轴-凸出部分背景颜色 */
+    background: rgb(161, 171, 175);
+	/* 纵轴-凸出部分背景圆角 */
+    border-radius: 5px;
+	/* 纵轴-凸出最新高度 */
+    min-height: 30px;
+}
+
+
+QScrollBar::handle:vertical:hover{
+	/* 纵轴-凸出部分触发背景颜色 */
+    background:#F2F3F5;
+}
+
+/*横向滚动条样式*/
+QScrollBar:horizontal{
+	border-style: solid;
+	/* 横轴-总体背景颜色 */
+    background:transparent;
+	/* 横轴-总体背景圆角 */
+    border-radius: 5px;
+	/* 横轴-总体宽度 */
+    min-height: 10px;
+    max-height: 10px;
+}
+QScrollBar::handle:horizontal{
+	/* 横轴-凸出部分背景颜色 */
+    background:  rgb(161, 171, 175);
+	/* 横轴-凸出部分背景圆角 */
+    border-radius: 5px;
+	/* 横轴-凸出最新高度 */
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover{
+	/* 横轴-凸出部分触发背景颜色 */
+    background:#F2F3F5;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page{
+    background: transparent;
+}
+QScrollBar::add-line,
+QScrollBar::sub-line{
+    background: transparent;
+}
+
+/*提示框样式*/
+QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,255);border-radius:4px;}</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,1,1">
       <item>
@@ -131,7 +195,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="label_4">
+                 <widget class="QLabel" name="allCount">
                   <property name="font">
                    <font>
                     <pointsize>-1</pointsize>
@@ -209,7 +273,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="label_9">
+                 <widget class="QLabel" name="handleCount">
                   <property name="font">
                    <font>
                     <pointsize>-1</pointsize>
@@ -287,7 +351,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="label_12">
+                 <widget class="QLabel" name="unhandleCount">
                   <property name="font">
                    <font>
                     <pointsize>-1</pointsize>
@@ -359,6 +423,12 @@
                <height>32</height>
               </size>
              </property>
+             <property name="cursor">
+              <cursorShape>PointingHandCursor</cursorShape>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="styleSheet">
               <string notr="true">border-radius:4px;
 background-color: rgb(242, 243, 245);
@@ -386,6 +456,12 @@ color: rgb(39, 39, 39);</string>
                <width>80</width>
                <height>32</height>
               </size>
+             </property>
+             <property name="cursor">
+              <cursorShape>PointingHandCursor</cursorShape>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="styleSheet">
               <string notr="true">border-radius:4px;
@@ -423,7 +499,7 @@ color: rgb(39, 39, 39);</string>
     selection-background-color: #3C4A5F; /* 选中行背景（深灰蓝，增强区分） */ 
     selection-color: #FFFFFF;  /* 选中行文字颜色（保持白色） */ 
     border: 0px;               /* 外边框隐藏（与父控件融合） */ 
-    font-size: 12px;           /* 文字大小（根据界面视觉调整） */ 
+    font-size: 18px;           /* 文字大小（根据界面视觉调整） */ 
 } 
 
 QHeaderView::section { 
@@ -467,10 +543,11 @@ QTableWidget QPushButton:hover {
     background-color: #3C4C5C; /* hover 时深色背景，增强反馈 */ 
     border-radius: 3px;        /* 圆角优化视觉 */ 
 } 
+
 </string>
            </property>
            <property name="selectionMode">
-            <enum>QAbstractItemView::SingleSelection</enum>
+            <enum>QAbstractItemView::NoSelection</enum>
            </property>
            <property name="selectionBehavior">
             <enum>QAbstractItemView::SelectRows</enum>
@@ -658,7 +735,7 @@ QTableWidget QPushButton:hover {
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="1,1,1">
            <property name="spacing">
             <number>40</number>
            </property>
@@ -683,9 +760,9 @@ QTableWidget QPushButton:hover {
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="label_13">
+                <widget class="QLabel" name="cpuinfo">
                  <property name="text">
-                  <string>26%</string>
+                  <string>--</string>
                  </property>
                 </widget>
                </item>
@@ -705,7 +782,7 @@ QTableWidget QPushButton:hover {
               </layout>
              </item>
              <item>
-              <widget class="QWidget" name="widget_3" native="true">
+              <widget class="QWidget" name="cpuWidget" native="true">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -738,7 +815,7 @@ QTableWidget QPushButton:hover {
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_14">
+                 <widget class="QLabel" name="cpuLabel">
                   <property name="minimumSize">
                    <size>
                     <width>371</width>
@@ -793,9 +870,9 @@ background-color: rgb(0, 223, 130);</string>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="label_16">
+                <widget class="QLabel" name="memoryInfo">
                  <property name="text">
-                  <string>50%</string>
+                  <string>--</string>
                  </property>
                 </widget>
                </item>
@@ -815,7 +892,7 @@ background-color: rgb(0, 223, 130);</string>
               </layout>
              </item>
              <item>
-              <widget class="QWidget" name="widget_4" native="true">
+              <widget class="QWidget" name="memoryWidget" native="true">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -848,7 +925,7 @@ background-color: rgb(0, 223, 130);</string>
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_17">
+                 <widget class="QLabel" name="memoryLabel">
                   <property name="minimumSize">
                    <size>
                     <width>371</width>
@@ -857,7 +934,7 @@ background-color: rgb(0, 223, 130);</string>
                   </property>
                   <property name="styleSheet">
                    <string notr="true">border-radius:5px;
-background-color: rgb(0, 223, 130);</string>
+background-color: #33B8FF;</string>
                   </property>
                   <property name="text">
                    <string/>
@@ -903,9 +980,9 @@ background-color: rgb(0, 223, 130);</string>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="label_19">
+                <widget class="QLabel" name="diskInfo">
                  <property name="text">
-                  <string>20%</string>
+                  <string>--</string>
                  </property>
                 </widget>
                </item>
@@ -925,7 +1002,7 @@ background-color: rgb(0, 223, 130);</string>
               </layout>
              </item>
              <item>
-              <widget class="QWidget" name="widget_7" native="true">
+              <widget class="QWidget" name="diskWidget" native="true">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -958,7 +1035,7 @@ background-color: rgb(0, 223, 130);</string>
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_20">
+                 <widget class="QLabel" name="diskLabel">
                   <property name="minimumSize">
                    <size>
                     <width>371</width>
@@ -967,7 +1044,7 @@ background-color: rgb(0, 223, 130);</string>
                   </property>
                   <property name="styleSheet">
                    <string notr="true">border-radius:5px;
-background-color: rgb(0, 223, 130);</string>
+background-color: #FFC86B</string>
                   </property>
                   <property name="text">
                    <string/>

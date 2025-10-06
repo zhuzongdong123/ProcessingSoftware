@@ -53,6 +53,12 @@ QNetworkReply * RestFulApi::visitUrl(QString url,VisitType visitType,ReplyType r
             request_registered.setUrl(request_registered.url().toString());
             replyTypeMap.insert(replyResult,replyType);
         }
+        else if(visitType == VisitType::DELETE)
+        {
+            replyResult = m_accessManager.sendCustomRequest(request_registered,"DELETE",byte);
+            request_registered.setUrl(request_registered.url().toString());
+            replyTypeMap.insert(replyResult,replyType);
+        }
     } else {
         //发起POST请求
         if(visitType == VisitType::POST)
@@ -79,6 +85,28 @@ QNetworkReply * RestFulApi::visitUrl(QString url,VisitType visitType,ReplyType r
             }
             request_registered.setUrl(QUrl(request_registered.url().toString()+queryString));
             auto replyResult=m_accessManager.get(request_registered);
+            replyTypeMap.insert(replyResult,replyType);
+            return replyResult;
+        }
+        else if(visitType == VisitType::DELETE)
+        {
+            QString queryString;
+            int count=0;
+            for(auto each:m_postData.queryItems())
+            {
+                if(count==0)
+                {
+                    queryString+="?";
+                }
+                else
+                {
+                    queryString+="&";
+                }
+                 queryString+=(each.first+"="+each.second);
+                 count++;
+            }
+            request_registered.setUrl(QUrl(request_registered.url().toString()+queryString));
+            auto replyResult=m_accessManager.deleteResource(request_registered);
             replyTypeMap.insert(replyResult,replyType);
             return replyResult;
         }
