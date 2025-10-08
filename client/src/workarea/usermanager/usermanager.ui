@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UserManager</class>
+ <widget class="QWidget" name="UserManager">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>947</width>
+    <height>502</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QWidget" name="widget" native="true">
+     <property name="styleSheet">
+      <string notr="true">#widget{background-color: rgb(38, 46, 53);}
+QLineEdit{padding-left:9px}
+QWidget{color:rgb(255,255,255);font-size:18px}</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>15</number>
+      </property>
+      <property name="topMargin">
+       <number>15</number>
+      </property>
+      <property name="rightMargin">
+       <number>15</number>
+      </property>
+      <property name="bottomMargin">
+       <number>15</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="widget_2" native="true">
+        <property name="styleSheet">
+         <string notr="true">#widget_2{border:2px solid #3F474F;border-radius:4px;}</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3" stretch="1,100">
+         <item>
+          <widget class="QWidget" name="widget_3" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,100,1,1">
+            <property name="spacing">
+             <number>20</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <property name="spacing">
+               <number>5</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>姓名：</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="nameSearchEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>35</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>250</width>
+                  <height>35</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">border:none;
+background-color: rgb(28, 33, 36);border-radius:4px</string>
+                </property>
+                <property name="placeholderText">
+                 <string>请输入查询用户的姓名</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>310</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="serchBtn">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(51, 184, 255);border:none;border-radius:4px</string>
+              </property>
+              <property name="text">
+               <string>查询</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="resetBtn">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color:#F2F3F5;border:none;border-radius:4px;color:#1D2129;</string>
+              </property>
+              <property name="text">
+               <string>重置</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="Gridlayout" name="gridlayout" native="true"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Gridlayout</class>
+   <extends>QWidget</extends>
+   <header>gridlayout.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
