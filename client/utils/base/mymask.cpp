@@ -29,6 +29,7 @@ void MyMask::insertMask(QWidget *parent, QString styleSheet, float opacity, QStr
     {
         QHBoxLayout* layout = new QHBoxLayout(mask);
         QLabel* labelTitle = new QLabel(mask);
+        labelTitle->setStyleSheet("font-size:40px");
         labelTitle->setAlignment(Qt::AlignCenter);
         labelTitle->setText(text);
         layout->addWidget(labelTitle);

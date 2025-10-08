@@ -6,27 +6,623 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>920</width>
-    <height>504</height>
+    <width>1171</width>
+    <height>665</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QPushButton" name="pushButton">
-   <property name="geometry">
-    <rect>
-     <x>830</x>
-     <y>10</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
    </property>
-   <property name="text">
-    <string>返回</string>
+   <property name="leftMargin">
+    <number>0</number>
    </property>
-  </widget>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QWidget" name="widget" native="true">
+     <property name="styleSheet">
+      <string notr="true">#widget{background-color: rgb(38, 46, 53);}
+QWidget{font-size:18px;color:rgb(255,255,255)}
+
+/*滚动条样式 START========================================================================*/
+/*纵向滚动条样式*/
+QScrollBar:vertical{
+	border-style: solid;
+	/* 纵轴-总体背景颜色 */
+    background:transparent;
+	/* 纵轴-总体背景圆角 */
+    border-radius: 5px;
+	/* 纵轴-总体宽度 */
+    min-width: 10px;
+    max-width: 10px;
+}
+QScrollBar::handle:vertical{
+	/* 纵轴-凸出部分背景颜色 */
+    background: rgb(161, 171, 175);
+	/* 纵轴-凸出部分背景圆角 */
+    border-radius: 5px;
+	/* 纵轴-凸出最新高度 */
+    min-height: 30px;
+}
+
+
+QScrollBar::handle:vertical:hover{
+	/* 纵轴-凸出部分触发背景颜色 */
+    background:#F2F3F5;
+}
+
+/*横向滚动条样式*/
+QScrollBar:horizontal{
+	border-style: solid;
+	/* 横轴-总体背景颜色 */
+    background:transparent;
+	/* 横轴-总体背景圆角 */
+    border-radius: 5px;
+	/* 横轴-总体宽度 */
+    min-height: 10px;
+    max-height: 10px;
+}
+QScrollBar::handle:horizontal{
+	/* 横轴-凸出部分背景颜色 */
+    background:  rgb(161, 171, 175);
+	/* 横轴-凸出部分背景圆角 */
+    border-radius: 5px;
+	/* 横轴-凸出最新高度 */
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover{
+	/* 横轴-凸出部分触发背景颜色 */
+    background:#F2F3F5;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page{
+    background: transparent;
+}
+QScrollBar::add-line,
+QScrollBar::sub-line{
+    background: transparent;
+}
+
+/*提示框样式*/
+QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,255);border-radius:4px;}</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QWidget" name="widget_2" native="true">
+        <property name="styleSheet">
+         <string notr="true">#widget_2{background-color: rgb(48, 56, 65);}
+</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QWidget" name="widget_3" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <property name="spacing">
+             <number>20</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="title">
+              <property name="styleSheet">
+               <string notr="true">font-size:22px</string>
+              </property>
+              <property name="text">
+               <string>xxx文件</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>356</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_5">
+              <property name="minimumSize">
+               <size>
+                <width>110</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(51, 184, 255);border:none;border-radius:4px</string>
+              </property>
+              <property name="text">
+               <string>标注完成</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>110</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color:#FAAD14;border:none;border-radius:4px;color: rgb(51, 51, 51);</string>
+              </property>
+              <property name="text">
+               <string>智能标绘</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_2">
+              <property name="minimumSize">
+               <size>
+                <width>110</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(242, 243, 245);
+color: rgb(51, 51, 51);border-radius:4px</string>
+              </property>
+              <property name="text">
+               <string>返回</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
+           <property name="spacing">
+            <number>12</number>
+           </property>
+           <item>
+            <widget class="Gridlayout" name="girdlayout" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>350</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>350</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="widget_4" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>350</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>250</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">
+
+    QCheckBox {
+       spacing: 5px; 
+       color: rgb(255,255,255);
+    }
+    QCheckBox::indicator {
+       width: 18px;
+       height: 18px;
+    }
+    QCheckBox::indicator:unchecked {
+       image: url(:/resources/image/noselect.png); 
+    }
+    QCheckBox::indicator:checked {
+       image: url(:/resources/image/select.png);  
+    }</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_6">
+              <property name="spacing">
+               <number>20</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QWidget" name="widget_5" native="true">
+                <property name="styleSheet">
+                 <string notr="true">#widget_5{border:2px solid  rgb(63, 71, 79);border-radius:4px}</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <property name="spacing">
+                  <number>20</number>
+                 </property>
+                 <item>
+                  <layout class="QHBoxLayout" name="horizontalLayout_3">
+                   <item>
+                    <widget class="QLabel" name="label">
+                     <property name="styleSheet">
+                      <string notr="true">font-size:20px</string>
+                     </property>
+                     <property name="text">
+                      <string>事件列表</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_3">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pushButton_3">
+                     <property name="toolTip">
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、右侧视图中，按下快捷键F1-F9进入标绘模式，此时可通过鼠标拖拽进行事件标注；&lt;/p&gt;&lt;p&gt;2、右侧视图中，按下ESC键退出标绘模式，进入预览模式；&lt;/p&gt;&lt;p&gt;3、右侧视图中，预览模式下，ctrl+鼠标拖拽，可删除已标绘的事件；&lt;/p&gt;&lt;p&gt;4、右侧视图中，预览模式下，通过鼠标可控制图像的缩放和平移。&lt;/p&gt;&lt;p&gt;5、右侧视图中，ctrl+数字键盘0，可还原视图；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     </property>
+                     <property name="styleSheet">
+                      <string notr="true">border:none;</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../../../myicon.qrc">
+                       <normaloff>:/resources/image/optTip.png</normaloff>:/resources/image/optTip.png</iconset>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>30</width>
+                       <height>30</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox">
+                   <property name="text">
+                    <string>F1-事件1</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_2">
+                   <property name="text">
+                    <string>F2-事件2</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_3">
+                   <property name="text">
+                    <string>F3-事件3</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_4">
+                   <property name="text">
+                    <string>F4-事件4</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_5">
+                   <property name="text">
+                    <string>F5-事件5</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacer_2">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="widget_6" native="true">
+                <property name="styleSheet">
+                 <string notr="true">#widget_6{border:2px solid  rgb(63, 71, 79);border-radius:4px}</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_5">
+                 <property name="spacing">
+                  <number>12</number>
+                 </property>
+                 <item>
+                  <layout class="QHBoxLayout" name="horizontalLayout_4">
+                   <item>
+                    <widget class="QLabel" name="label_2">
+                     <property name="styleSheet">
+                      <string notr="true">font-size:20px</string>
+                     </property>
+                     <property name="text">
+                      <string>操作列表</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_4">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pushButton_4">
+                     <property name="toolTip">
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、ctrl+数字键盘1，可切换是否显示点云图片；&lt;/p&gt;&lt;p&gt;2、ctrl+s，可进行数据保存；&lt;/p&gt;&lt;p&gt;3、ctrl+2，可人工设置图片为已标记；&lt;/p&gt;&lt;p&gt;3、ctrl+3，可人工设置图片取消标记；&lt;/p&gt;&lt;p&gt;4、方向键-左键，键盘按下后可切换上一张图片；&lt;/p&gt;&lt;p&gt;5、方向键-右键，键盘按下后可切换下一张图片；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     </property>
+                     <property name="styleSheet">
+                      <string notr="true">border:none;</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../../../myicon.qrc">
+                       <normaloff>:/resources/image/optTip.png</normaloff>:/resources/image/optTip.png</iconset>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>30</width>
+                       <height>30</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget_7" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>200</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton{background-color: rgb(242, 243, 245);color: rgb(51, 51, 51);border-radius:4px}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_7">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <layout class="QGridLayout" name="gridLayout">
+                      <property name="spacing">
+                       <number>12</number>
+                      </property>
+                      <item row="0" column="0">
+                       <widget class="QPushButton" name="pointsDisplayBtn">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="styleSheet">
+                         <string notr="true">QPushButton:checked{background-color: rgb(51, 184, 255);border:none;border-radius:4px;color:rgb(255,255,255)}</string>
+                        </property>
+                        <property name="text">
+                         <string>点云显示</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QPushButton" name="pushButton_7">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="text">
+                         <string>保存xxx好像无用</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <widget class="QPushButton" name="addHandleFlagBtn">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="text">
+                         <string>添加标记</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="1">
+                       <widget class="QPushButton" name="deleteHandleFlagBtn">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="text">
+                         <string>删除标记</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="0">
+                       <widget class="QPushButton" name="pushButton_9">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="text">
+                         <string>上一张</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="1">
+                       <widget class="QPushButton" name="pushButton_10">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="text">
+                         <string>下一张</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacer_3">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>40</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="ImagePreviewWidget" name="imagePreviewWidget" native="true"/>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
  </widget>
- <resources/>
+ <customwidgets>
+  <customwidget>
+   <class>ImagePreviewWidget</class>
+   <extends>QWidget</extends>
+   <header>imagepreviewwidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>Gridlayout</class>
+   <extends>QWidget</extends>
+   <header>gridlayout.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../../../myicon.qrc"/>
+ </resources>
  <connections/>
 </ui>

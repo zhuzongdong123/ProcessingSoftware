@@ -1,14 +1,468 @@
-#include "annotationdatapage.h"
+﻿#include "annotationdatapage.h"
 #include "ui_annotationdatapage.h"
+#include "appdatabasebase.h"
+#include "tipsdlgview.h"
+#include <QtConcurrent>
+#include <QPainter>
+#include <QDir>
 
 AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AnnotationDataPage)
 {
     ui->setupUi(this);
+    connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &AnnotationDataPage::slt_requestFinishedSlot);
+    connect(ui->pointsDisplayBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setDisplayPointsItem);
+    connect(ui->addHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleEnd);
+    connect(ui->deleteHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleCancle);
 }
 
 AnnotationDataPage::~AnnotationDataPage()
 {
     delete ui;
+}
+
+void AnnotationDataPage::setBagId(QString id)
+{
+    //获取bag文件的详情
+    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    m_restFulApi.visitUrl(requestUrl + QString(API_BAG_FILE_DETIAL).arg(id),VisitType::GET,ReplyType::BAG_FILE_DETIAL);
+    m_bagId = id;
+}
+
+void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
+{
+    if(replyTypeMap.value(networkReply)==ReplyType::BAG_FILE_DETIAL)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,networkReply))
+            {
+                QJsonObject objData = obj.value("data").toObject();
+                QString fileName = objData.value("file_name").toString();
+                ui->title->setText(fileName);
+
+                //获取bag文件对应的图片列表
+                QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+                this->m_restFulApi.getPostData().clear();
+                m_restFulApi.visitUrl(requestUrl + QString(API_IMAGES_LIST_GET).arg(m_bagId),VisitType::GET,ReplyType::IMAGES_LIST_GET);
+            }
+            else
+            {
+                TipsDlgView* dlg = new TipsDlgView(obj.value("message").toString(), nullptr);
+                dlg->startTimer();
+                dlg->show();
+            }
+        }
+        else
+        {
+            TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+            dlg->startTimer();
+            dlg->show();
+        }
+        networkReply->deleteLater();
+    }
+    else if(replyTypeMap.value(networkReply)==ReplyType::IMAGES_LIST_GET)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,networkReply))
+            {
+                QJsonObject objData = obj.value("data").toObject();
+                //ui->positionText->setText(QString("图片位置：1/%1").arg(objData.value("count").toInt()));
+
+                //添加图片缩略图
+                m_loadSuccessedImageMap.clear();
+                QJsonArray array = objData.value("images").toArray();
+                m_allImageCount = array.size();
+                for(auto imageInfo : array)
+                {
+                    QJsonObject imageObj = imageInfo.toObject();
+                    ImageLoder* imageloder = new ImageLoder();
+                    connect(imageloder,&ImageLoder::sig_loadSuccessed,this,&AnnotationDataPage::slt_imageLoadSuccessed,Qt::QueuedConnection);
+                    connect(imageloder,&ImageLoder::sig_mousePressed,this,&AnnotationDataPage::sig_mousePressed,Qt::QueuedConnection);
+                    connect(imageloder,&ImageLoder::sig_mousePressedImage,this,&AnnotationDataPage::slt_mousePressedImage,Qt::QueuedConnection);
+                    connect(this,&AnnotationDataPage::sig_mousePressed,imageloder,&ImageLoder::slt_setImageSelected);
+                    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_personHandleEnd,imageloder,&ImageLoder::slt_setImageHandled);
+
+                    imageObj.insert("bag_id",m_bagId);
+                    imageloder->setImageInfo(imageObj);
+                    imageloder->setFixedSize(315,231);
+                    ui->girdlayout->pushBack(imageloder);
+                    QApplication::processEvents();
+                }
+            }
+            else
+            {
+               // ui->positionText->setText(obj.value("message").toString());
+            }
+        }
+        else
+        {
+           // ui->positionText->setText("服务器连接失败");
+        }
+        networkReply->deleteLater();
+    }
+    else if(replyTypeMap.value(networkReply)==ReplyType::CURRENT_IMAGE_DETIAL_GET)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            QByteArray picArray = networkReply->readAll();
+            QPixmap currentPicture;
+            currentPicture.loadFromData(picArray);
+            QString key = networkReply->property("key").toString();
+            ui->imagePreviewWidget->loadImage(currentPicture,key);
+
+            //请求点云图片
+            {
+                QString url = networkReply->property("visitPointUrl").toString();
+                this->m_restFulApi.getPostData().clear();
+                m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::POINT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
+            }
+
+            {
+                QString url = networkReply->property("visitEventUrl").toString();
+                this->m_restFulApi.getPostData().clear();
+                m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::EVENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
+            }
+        }
+        else
+        {
+            TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+            dlg->startTimer();
+            dlg->show();
+        }
+        networkReply->deleteLater();
+        m_mask.deleteMask(ui->imagePreviewWidget);
+    }
+    else if(replyTypeMap.value(networkReply)==ReplyType::POINT_IMAGE_DETIAL_GET)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            QByteArray picArray = networkReply->readAll();
+            QPixmap currentPicture;
+            currentPicture.loadFromData(picArray);
+            ui->imagePreviewWidget->loadPointImage(currentPicture);
+        }
+        networkReply->deleteLater();
+    }
+    else if(replyTypeMap.value(networkReply)==ReplyType::EVENT_IMAGE_DETIAL_GET)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,networkReply))
+            {
+                ui->imagePreviewWidget->displayRequestEvent(obj);
+            }
+        }
+        networkReply->deleteLater();
+    }
+}
+
+void AnnotationDataPage::slt_imageLoadSuccessed(QString filePath)
+{
+    if(m_loadSuccessedImageMap.find(filePath) == m_loadSuccessedImageMap.end())
+    {
+        m_loadSuccessedImageMap.insert(filePath,filePath);
+    }
+
+    int successedCount = m_loadSuccessedImageMap.size();
+    //ui->process->setText(QString("加载进度：%1/%2").arg(successedCount).arg(m_allImageCount));
+}
+
+void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
+{
+    m_currentSelectObj = obj;
+    //获取bag文件的详情
+    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    QString filePath = obj.value("file_path").toString();
+    QStringList list = filePath.split("/");
+    if(list.size() > 0)
+    {
+        filePath = *(list.end()-1);
+    }
+    else
+    {
+        return;
+    }
+    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
+                          VisitType::GET,ReplyType::CURRENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,5000,QNetworkRequest::Priority::HighPriority);
+    reply->setProperty("path",filePath);
+    QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("id").toInt());
+    reply->setProperty("key",key);
+    reply->setProperty("visitPointUrl",requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
+    reply->setProperty("visitEventUrl",requestUrl + QString(API_EVENT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
+    m_mask.insertMask(ui->imagePreviewWidget,"background-color:rgb(0,0,0,200)",0.5,"加载中,请稍后");
+}
+
+ImageLoder::ImageLoder(QWidget *parent) : QWidget(parent)
+{
+    connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &ImageLoder::slt_requestFinishedSlot);
+    connect(this, &ImageLoder::sig_loadFinished, this, &ImageLoder::slt_loadFinished,Qt::QueuedConnection);//队列连接
+    m_watcher = new QFutureWatcher<QPixmap>();
+    connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &ImageLoder::slt_watcherFinished,Qt::QueuedConnection);//队列连接
+}
+
+ImageLoder::~ImageLoder()
+{
+    disconnect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &ImageLoder::slt_watcherFinished);//队列连接
+    disconnect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &ImageLoder::slt_requestFinishedSlot);
+    disconnect(this, &ImageLoder::sig_loadFinished, this, &ImageLoder::slt_loadFinished);//队列连接
+
+    if (m_watcher->isRunning())  {
+        m_watcher->waitForFinished();  // 阻塞等待
+    }
+}
+
+void ImageLoder::setImageInfo(QJsonObject obj)
+{
+    m_obj = obj;
+
+    //获取bag文件的详情
+    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    QString filePath = obj.value("file_path").toString();
+    QStringList list = filePath.split("/");
+    if(list.size() > 0)
+    {
+        filePath = *(list.end()-1);
+    }
+    else
+    {
+        return;
+    }
+    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
+                          VisitType::GET,ReplyType::IMAGE_DETIAL_GET);
+    reply->setProperty("path",filePath);
+}
+
+void ImageLoder::slt_setImageHandled(QString id, bool isHandle)
+{
+    if(m_obj.value("id").toInt() == id.toInt())
+    {
+        m_isHandled = isHandle;
+        update();
+    }
+}
+
+void ImageLoder::slt_setImageSelected(QString id)
+{
+    if(m_obj.value("id").toInt() == id.toInt())
+    {
+        if(m_isSelected != true)
+        {
+            m_isSelected = true;
+            update();
+        }
+    }
+    else
+    {
+        if(m_isSelected != false)
+        {
+            m_isSelected = false;
+            update();
+        }
+    }
+}
+
+void ImageLoder::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event);
+
+    QPainter painter(this);
+
+    painter.fillRect(rect(),QColor(200,200,200));
+
+    if(!m_errorInfo.isEmpty())
+    {
+        painter.setRenderHint(QPainter::Antialiasing);  // 抗锯齿
+        // 设置字体（可选）
+        QFont font("微软雅黑", 18, QFont::Bold);
+        painter.setFont(font);
+
+        // 要绘制的文字
+        QString text = QString("%1(%2.jpg)").arg(m_errorInfo).arg(m_obj.value("id").toInt());
+
+        // 计算文字在窗口中的居中位置
+        QFontMetrics metrics(font);
+        int textWidth = metrics.horizontalAdvance(text);  // 文字宽度
+        int textHeight = metrics.height();                // 文字高度
+
+        // 计算绘制起点（居中）
+        int x = (width() - textWidth) / 2;
+        int y = (height() + textHeight / 2) / 2; // 垂直居中
+
+        // 绘制文字
+        painter.drawText(x,  y, text);
+    }
+
+    if (!m_scaledPixMap.isNull())  {
+        // 缩放图片以适应窗口大小
+        QPixmap scaled = m_scaledPixMap.scaled(this->size(),  Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        painter.drawPixmap(0, 0, scaled);
+
+        painter.setRenderHint(QPainter::Antialiasing);  // 抗锯齿
+        // 设置字体（可选）
+        QFont font("微软雅黑", 12, QFont::Bold);
+        painter.setPen(QColor(255,0,0));
+        painter.setFont(font);
+
+        // 要绘制的文字
+        QString text = QString("%1.jpg").arg(m_obj.value("id").toInt());
+
+        // 计算文字在窗口中的居中位置
+        QFontMetrics metrics(font);
+        int textWidth = metrics.horizontalAdvance(text);  // 文字宽度
+        int textHeight = metrics.height();                // 文字高度
+
+        // 计算绘制起点（居中）
+        int x = (width() - textWidth) / 2;
+        int y = height() - 10; // 垂直居中
+
+        // 绘制文字
+        painter.drawText(x,  y, text);
+    }
+
+    if(m_isHandled)
+    {
+        QPainter painter(this);
+        // 1. 绘制绿色圆角矩形背景
+        QRect rect(width()-50-5, 5, 50, 30); // 矩形位置和大小
+        int radius = 4;             // 圆角半径
+
+        painter.setPen(Qt::NoPen);    // 无边框
+        painter.setBrush(QColor("#33B8FF")); // 绿色填充
+        painter.drawRoundedRect(rect,  radius, radius);
+
+        // 2. 绘制白色文字
+        painter.setPen(Qt::white);    // 白色文字
+        QFont font("Microsoft YaHei", 12, QFont::Bold); // 字体设置
+        painter.setFont(font);
+
+        // 计算文字居中位置
+        QString text = "已标";
+        QRect textRect = painter.fontMetrics().boundingRect(text);
+        int x = rect.x() + (rect.width()  - textRect.width())  / 2;
+        int y = rect.y() + (rect.height()  + textRect.height()  / 2) / 2;
+
+        painter.drawText(x,  y, text);
+    }
+
+    if(m_isSelected)
+    {
+        QPainter painter(this);
+        // 1. 定义矩形参数
+        QRect rect(0, 0, width(), height()); // 矩形位置和大小
+        int radius = 1;             // 圆角半径
+        qreal borderWidth = 6.0;        // 线框粗细
+
+        // 2. 设置绘制样式
+        QPen pen(QColor("#33B8FF"), borderWidth); // 蓝色边框，指定粗细
+        pen.setJoinStyle(Qt::RoundJoin);  // 设置连接处为圆角
+        painter.setPen(pen);
+
+        // 3. 绘制圆角矩形
+        painter.drawRoundedRect(rect,  radius, radius);
+    }
+}
+
+void ImageLoder::mousePressEvent(QMouseEvent *event)
+{
+    Q_UNUSED(event);
+    emit sig_mousePressed(QString::number(m_obj.value("id").toInt()));
+    emit sig_mousePressedImage(m_obj);
+}
+
+static QSize fixSize(315,231);
+void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
+{
+    if(replyTypeMap.value(networkReply)==ReplyType::IMAGE_DETIAL_GET)
+    {
+        QString path = networkReply->property("path").toString();
+        QString filePath = m_obj.value("file_path").toString();
+        if(!filePath.endsWith(path))
+        {
+            return;
+        }
+
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            QByteArray picArray = networkReply->readAll();
+            m_watcher->setFuture(QtConcurrent::run([=](){
+                //获取字节流构造 QPixmap 对象
+                QPixmap currentPicture;
+                currentPicture.loadFromData(picArray);
+                if(currentPicture.isNull())
+                {
+                    return QPixmap();
+                }
+                QImage image = currentPicture.toImage();
+
+//                //保存图片
+//                {
+//                    QString saveFolderPath = QApplication::applicationDirPath() + "/" + m_obj.value("bag_id").toString();
+//                    QDir dir(saveFolderPath);
+//                    if(!dir.exists())
+//                    {
+//                        dir.mkpath(".");
+//                    }
+//                    QString saveFilePath = saveFolderPath + "/" + path;
+//                    QImage imageTemp = image.copy();
+//                    imageTemp.detach();
+//                    imageTemp.save(saveFilePath);
+//                }
+
+                try {
+                    if (!image.isNull())  {
+                        return QPixmap::fromImage(image.scaled(
+                            fixSize,
+                            Qt::KeepAspectRatio,
+                            Qt::SmoothTransformation
+                        ));
+                    }
+                    qDebug() << "QPixmap()";
+                    return QPixmap();
+                } catch (...) {
+                    return QPixmap();
+                }
+            }));
+        }
+        else
+        {
+            m_errorInfo = "加载失败";
+            emit sig_loadFinished();
+        }
+        networkReply->deleteLater();
+    }
+}
+
+void ImageLoder::slt_loadFinished()
+{
+    update();
+}
+
+void ImageLoder::slt_watcherFinished()
+{
+    QFuture<QPixmap> future = m_watcher->future();
+    if (future.result().isNull())
+    {
+        m_errorInfo = "加载失败";
+        emit sig_loadFinished();
+        return;
+    }
+    this->m_scaledPixMap = future.result();
+    //watcher->deleteLater();
+    emit sig_loadFinished();
+    //emit sig_loadSuccessed(filePath);
 }

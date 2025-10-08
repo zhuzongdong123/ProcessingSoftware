@@ -7,6 +7,7 @@ MainWindowWidget::MainWindowWidget(QWidget *parent) :
     ui(new Ui::MainWindowWidget)
 {
     ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint);
 
     createConnect();
 }
@@ -54,6 +55,7 @@ void MainWindowWidget::sig_turn2BagDetialPage(QString id)
     if(nullptr == m_annotationDataPage)
     {
         m_annotationDataPage = new AnnotationDataPage(ui->stackedWidget);
+        m_annotationDataPage->setBagId(id);
         ui->stackedWidget->addWidget(m_annotationDataPage);
     }
     ui->stackedWidget->setCurrentWidget(m_annotationDataPage);

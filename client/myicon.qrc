@@ -20,6 +20,10 @@
         <file>resources/image/inport.png</file>
         <file>resources/image/tip.png</file>
         <file>resources/image/serverError.png</file>
+        <file>resources/image/noselect.png</file>
+        <file>resources/image/select.png</file>
+        <file>resources/image/optTip.png</file>
+        <file>resources/image/personEdit.png</file>
     </qresource>
     <qresource prefix="/qss"/>
 </RCC>

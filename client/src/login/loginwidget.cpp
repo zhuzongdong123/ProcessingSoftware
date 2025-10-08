@@ -237,7 +237,7 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 m_mainWindow = new MainWindowWidget();
                 connect(m_mainWindow,&MainWindowWidget::sig_show,this,&LoginWidget::close);
                 connect(m_mainWindow,&MainWindowWidget::sig_logout,this,&LoginWidget::slt_logout);
-                m_mainWindow->showFullScreen();
+                m_mainWindow->showMaximized();
             }
             else
             {

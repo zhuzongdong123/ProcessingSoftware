@@ -11,7 +11,7 @@ RestFulApi::RestFulApi()
 
 }
 
-QNetworkReply * RestFulApi::visitUrl(QString url,VisitType visitType,ReplyType replyType,QString hearderInfo,QByteArray byte, bool outLog, int timeout)
+QNetworkReply * RestFulApi::visitUrl(QString url,VisitType visitType,ReplyType replyType,QString hearderInfo,QByteArray byte, bool outLog, int timeout,QNetworkRequest::Priority priority)
 {
     if(outLog)
     {
@@ -35,6 +35,7 @@ QNetworkReply * RestFulApi::visitUrl(QString url,VisitType visitType,ReplyType r
     request_registered.setSslConfiguration(sslconfig);
     //设置请求头
     request_registered.setHeader(QNetworkRequest::ContentTypeHeader, hearderInfo);
+    request_registered.setPriority(priority);
 
     QNetworkReply* replyResult = nullptr;
     //application/json，向数据库传输参数

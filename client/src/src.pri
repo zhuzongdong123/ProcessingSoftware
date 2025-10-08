@@ -16,7 +16,8 @@ HEADERS += \
     $$PWD/login/loginwidget.h \
     $$PWD/mainwindow/mainwindowwidget.h \
     $$PWD/menubar/menubar.h \
-    $$PWD/titlebar/titlebar.h
+    $$PWD/titlebar/titlebar.h \
+    $$PWD/workarea/datamanager/imagepreviewwidget.h
 
 SOURCES += \
     $$PWD/common/appcommonbase.cpp \
@@ -28,7 +29,8 @@ SOURCES += \
     $$PWD/login/loginwidget.cpp \
     $$PWD/mainwindow/mainwindowwidget.cpp \
     $$PWD/menubar/menubar.cpp \
-    $$PWD/titlebar/titlebar.cpp
+    $$PWD/titlebar/titlebar.cpp \
+    $$PWD/workarea/datamanager/imagepreviewwidget.cpp
 
 INCLUDEPATH += $$PWD\
 $$PWD/common\

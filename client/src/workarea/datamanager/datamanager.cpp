@@ -383,6 +383,8 @@ void DataManager::initTable()
     ui->tableWidget->setColumnCount(labelList.size());
     ui->tableWidget->setHorizontalHeaderLabels(labelList);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    //隐藏列
+    ui->tableWidget->hideColumn(COLNAME::UUID);
    // ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // 设置表头样式
@@ -565,9 +567,6 @@ void DataManager::resetTableInfo(QJsonObject objResult)
         widget2->setLayout(layout2);
         ui->tableWidget->setCellWidget(rowIndex,COLNAME::operation,widget2);
     }
-
-    //隐藏列
-    ui->tableWidget->hideColumn(COLNAME::UUID);
 
     //居中显示
     int nCount = ui->tableWidget->rowCount();
