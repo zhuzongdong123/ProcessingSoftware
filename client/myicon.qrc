@@ -24,6 +24,11 @@
         <file>resources/image/select.png</file>
         <file>resources/image/optTip.png</file>
         <file>resources/image/personEdit.png</file>
+        <file>resources/image/uploadPic.png</file>
+        <file>resources/image/hidePwd.png</file>
+        <file>resources/image/showPwd.png</file>
+        <file>resources/image/add.png</file>
+        <file>resources/image/user-normal.png</file>
     </qresource>
     <qresource prefix="/qss"/>
 </RCC>

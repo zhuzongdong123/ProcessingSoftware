@@ -115,7 +115,7 @@ void LoginWidget::on_loginButton_clicked()
     document.setObject(post_data);
     post_param = document.toJson(QJsonDocument::Compact);
 
-    m_restFulApi.visitUrl(requestUrl + IDENTITY_AUTHENTICATION_QUERYPWD,VisitType::POST,ReplyType::LOGIN,"application/x-www-form-urlencoded",post_param,true,5000);
+    m_restFulApi.visitUrl(requestUrl + API_IDENTITY_AUTHENTICATION_QUERYPWD,VisitType::POST,ReplyType::LOGIN,"application/x-www-form-urlencoded",post_param,true,5000);
     ui->loginButton->setText("登录中");
     ui->loginButton->setEnabled(false);
 } 
@@ -217,6 +217,9 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
                 AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
                 AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
+
+                //测试代码，临时关闭
+                //AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
 
                 //测试代码
                 AppDatabaseBase::getInstance()->m_serverIp = "111.34.71.210";

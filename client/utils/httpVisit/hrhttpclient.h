@@ -14,15 +14,15 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-//*****************身份信息
-//登录验证密码
-#define IDENTITY_AUTHENTICATION_QUERYPWD "/controller/identity/authentication/queryPwd"
-//身份信息分页查询
-#define IDENTITY_AUTHENTICATION_PAGELIST "/controller/identity/authentication/pagelist"
-//身份信息删除
-#define IDENTITY_AUTHENTICATION_DEL "/controller/identity/authentication/del"
-//身份信息更新插入
-#define IDENTITY_AUTHENTICATION_ADD "/controller/identity/authentication/add"
+////*****************身份信息
+////登录验证密码
+//#define IDENTITY_AUTHENTICATION_QUERYPWD "/controller/identity/authentication/queryPwd"
+////身份信息分页查询
+//#define IDENTITY_AUTHENTICATION_PAGELIST "/controller/identity/authentication/pagelist"
+////身份信息删除
+//#define IDENTITY_AUTHENTICATION_DEL "/controller/identity/authentication/del"
+////身份信息更新插入
+//#define IDENTITY_AUTHENTICATION_ADD "/controller/identity/authentication/add"
 
 class hrHttpClient : public QObject
 {

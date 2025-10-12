@@ -34,7 +34,7 @@ public:
     // 获取所有标注信息
     QList<QRectF> getAnnotations() const;
 
-    void loadImage(QPixmap pixmap, QString key);
+    void loadImage(QPixmap pixmap, QString key = "");
     void loadPointImage(QPixmap pixmap);
 
 
@@ -61,6 +61,9 @@ public:
     void drawFromCache();
     //显示后台记录的所有的事件
     void displayRequestEvent(QJsonObject obj);
+    void readEvents2Cache(QJsonObject obj);
+
+    QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> getImageCache();
 
 public slots:
     //控制是否显示点云数据
@@ -68,6 +71,7 @@ public slots:
     //人工标记处理完成
     void slt_setPersonHandleEnd();
     void slt_setPersonHandleCancle();
+    void slt_btnClicked();
 
 signals:
     void sig_personHandleEnd(QString id, bool isHandle);
@@ -82,6 +86,7 @@ protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;
     bool eventFilter(QObject *watched, QEvent *event);
     void showEvent(QShowEvent *event) override;
+    void closeEvent(QCloseEvent* event);
 
 private:
     // 坐标转换系统
@@ -124,6 +129,7 @@ private:
     // 图片原始尺寸
     QSize m_imageSize;
     QString m_imageKey;
+
 };
 
 #endif // IMAGEPREVIEWWIDGET_H

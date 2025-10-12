@@ -4,6 +4,8 @@
 
 #include <QWidget>
 #include "restfulapi.h"
+#include "progressbar.h"
+#include "mymask.h"
 
 namespace Ui {
 class DataManager;
@@ -25,10 +27,11 @@ public:
         QString fileName;
         QString filePath;
         QString createTime;
-        QString handleStatus;
-        QString drawStatus;
-//        QString drawPerson;
-//        QString drawStartTime;
+        QString handleStatus = "--";
+        QString drawStatus = "--";
+        QString downStatus = "--";
+        QString drawPerson;
+        QString drawStartTime;
 //        QString drawEndTime;
         QString dataFrom;
         QString memory;
@@ -44,8 +47,9 @@ public:
         createTime,
         handleStatus,
         drawStatus,
-//        drawPerson,
-//        drawStartTime,
+        downStatus,
+        drawPerson,
+        drawStartTime,
 //        drawEndTime,
         dataFrom,
         memory,
@@ -62,12 +66,15 @@ protected:
 private slots:
     void slt_requestFinishedSlot(QNetworkReply *networkReply);
     void slt_operateBtnClicked();
+    void slt_refreshTableData();
 
 private:
     Ui::DataManager *ui;
     RestFulApi m_restFulApi;
     QVector<RecordInfo> _recordInfoVec;     //所有记录。作为成员变量，后期查询用
     bool m_isGetSysInfo = false;
+    ProgressBar m_progressBar;
+    MyMask m_mask;
 
     //统计数量
     int m_allCount = 0;//全部数量
@@ -77,6 +84,9 @@ private:
 private:
     //获取各种统计数量
     void getBagCounts();
+
+    //获取所有的bag文件的列表
+    void searchBagsList();
 
     //获取表格内容
     void getTableInfo();
@@ -104,6 +114,21 @@ private:
 
     //删除数据
     void delData(QString id);
+
+    void downLoadData(QString id);
+
+    void findAllBagByFolder(QString folderPath, QVector<RecordInfo>& allBasMap);
+
+    void displayTable();
+
+    //迁移当前bag文件的标记事件
+    bool resetCurrentBagEvents(QString bagId);
+
+    void inserBagRecord(QString bagId);
+
+    QJsonObject queryBagRecordSentry(QString bagId);
+
+    QWidget *getMainWindow();
 };
 
 #endif // DATAMANAGER_H

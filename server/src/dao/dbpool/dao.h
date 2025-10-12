@@ -1,4 +1,4 @@
-/*
+﻿/*
  * @file dao.h
  * @brief dao层基类，实现对表格控制的基本通用方法
  * @author jason
@@ -75,7 +75,7 @@ public:
     * @param 入参(in) QQMap<QString,QVariant> where  查询的数据条件，key字段名词  value 字段对应的值
     * @return  返回值(return)  QJsonArray 查询的数据集合
     */
-    QJsonArray queryDataForBase(QString sTableName,QList<QString> filed,QMap<QString,QVariant> where);
+    QJsonArray queryDataForBase(QString sTableName,QList<QString> filed,QMap<QString,QVariant> where, int limit = 100000, QString orderBy = "");
     /*
     * @Function  queryDataForBase
     * @Description 分页查询通用方法（_like结尾的都是模糊查询）重载函数不要有默认值
@@ -103,6 +103,9 @@ public:
 
     QString m_lastError = "数据库连接错误";
     QString fromHump(QString value);
+
+    //批量插入数据库
+    bool insertDatasForBaseList(QString sTableName, QMap<QString, QVariantList> data);
 private:
 
     QSqlDatabase m_db; //数据库连接实例

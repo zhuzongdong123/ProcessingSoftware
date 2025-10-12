@@ -1,4 +1,4 @@
-#include "dao.h"
+﻿#include "dao.h"
 #include <QDebug>
 #include "dbpool.h"
 #include <QRegularExpression>
@@ -123,6 +123,74 @@ bool DAO::insertDataForBaseList(QString sTableName, QMap<QString, QVariantList> 
     ret = query.execBatch();
     m_lastError = query.lastError().text();
 
+
+    return ret;
+}
+
+bool DAO::insertDatasForBaseList(QString sTableName, QMap<QString, QVariantList> data)
+{
+    bool ret = false;
+    QSqlQuery query(m_db);
+
+    // 获取字段名列表
+    QList<QString> sNameList = data.keys();
+    if (sNameList.isEmpty())  {
+        m_lastError = "No fields provided";
+        return false;
+    }
+
+    // 检查所有字段的值的数量是否一致
+    int recordCount = data[sNameList.first()].size();
+    for (auto name : sNameList) {
+        if (data[name].size() != recordCount) {
+            m_lastError = QString("Field '%1' has inconsistent number of values").arg(name);
+            return false;
+        }
+    }
+
+    // 构建SQL语句
+    QString sql = "INSERT INTO " + sTableName + " (";
+    QString values = " VALUES (";
+
+    for(auto name : sNameList) {
+        sql += name + ", ";
+        values += ":" + name + ", ";
+    }
+    sql.chop(2);
+    sql += ")";
+    values.chop(2);
+    values += ")";
+
+    query.prepare(sql  + values);
+
+    // 开始事务
+    m_db.transaction();
+
+    try {
+        // 绑定并执行每条记录
+        for (int i = 0; i < recordCount; ++i) {
+            for(auto name : sNameList) {
+                query.bindValue(":"  + name, data[name].at(i));
+            }
+            if (!query.exec())  {
+                m_lastError = query.lastError().text();
+                m_db.rollback();
+                return false;
+            }
+        }
+
+        // 提交事务
+        if (!m_db.commit())  {
+            m_lastError = m_db.lastError().text();
+            return false;
+        }
+
+        ret = true;
+    } catch (...) {
+        m_db.rollback();
+        m_lastError = "Exception occurred during batch insert";
+        return false;
+    }
 
     return ret;
 }
@@ -260,7 +328,7 @@ int DAO::queryDataForBase(QString sTableName)
     return iRetNum;
 }
 
-QJsonArray DAO::queryDataForBase(QString sTableName, QList<QString> filed, QMap<QString, QVariant> where)
+QJsonArray DAO::queryDataForBase(QString sTableName, QList<QString> filed, QMap<QString, QVariant> where, int limit, QString orderBy)
 {
     //SELECT id,age FROM `student` where age = 33
     QJsonArray ret;
@@ -286,6 +354,14 @@ QJsonArray DAO::queryDataForBase(QString sTableName, QList<QString> filed, QMap<
         wheres += " and " + con + "=:w" + con ;
     }
     sql += sFileds +" from "+sTableName + wheres;
+
+    //是否只检索1条
+    if(!orderBy.isEmpty())
+    {
+        sql += QString(" order by %1").arg(orderBy);
+    }
+    sql += QString(" limit %1").arg(limit);
+
     query.prepare(sql);
     for(auto con : sWhereList)
     {

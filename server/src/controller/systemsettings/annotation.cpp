@@ -1,13 +1,13 @@
-﻿#include "identitycontroller.h"
+﻿#include "annotation.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
-IdentityController::IdentityController(QObject *parent) : HttpRequestHandler(parent)
+Annotition::Annotition(QObject *parent) : HttpRequestHandler(parent)
 {
 
 }
 
-void IdentityController::service(HttpRequest &request, HttpResponse &response)
+void Annotition::service(HttpRequest &request, HttpResponse &response)
 {
     QByteArray path=request.getPath();
     QByteArray body = request.getBody();
@@ -55,13 +55,29 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
         if(!result)
         {
             msg = dao.m_lastError;
-
-            if(msg.contains("Duplicate") && msg.contains("auth_identity.acc"))
-            {
-                msg = "操作失败，账号已存在";
-            }
-
             code = 500;
+        }
+    }
+    else if("addEvent" == strAction) //增加
+    {
+        result = dao.addEvents(obj);
+        if(!result)
+        {
+            msg = dao.m_lastError;
+            code = 500;
+        }
+    }
+    else if("queryEvent" == strAction) //增加
+    {
+        result = dao.getAllEvents(obj,arr);
+        if(!result)
+        {
+            msg = dao.m_lastError;
+            code = 500;
+        }
+        else
+        {
+             retObj.insert("data",arr);
         }
     }
     else if("del" == strAction) //删除
@@ -73,10 +89,9 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
             code = 500;
         }
     }
-    else if("queryPwd" == strAction)  //验证密码
+    else if("query" == strAction) //查询
     {
-        QJsonObject returnObj;
-        result = dao.queryPwdIdentityResource(returnObj, obj);
+        result = dao.queryResource(obj,arr);
         if(!result)
         {
             msg = dao.m_lastError;
@@ -84,7 +99,7 @@ void IdentityController::service(HttpRequest &request, HttpResponse &response)
         }
         else
         {
-             retObj.insert("data",returnObj);
+             retObj.insert("data",arr);
         }
     }
     else

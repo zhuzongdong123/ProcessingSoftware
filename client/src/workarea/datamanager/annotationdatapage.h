@@ -18,6 +18,9 @@ public:
 
     //设置图片的信息
     void setImageInfo(QJsonObject obj);
+    QJsonObject getImageInfo();
+
+    void setSelected(bool value);
 
 public slots:
     //哪个图片被选中了
@@ -69,6 +72,7 @@ public:
 
 signals:
     void sig_mousePressed(QString id);
+    void sig_return();
 
 private:
     Ui::AnnotationDataPage *ui;
@@ -78,11 +82,19 @@ private:
     QMap<QString,QString> m_loadSuccessedImageMap;
     QJsonObject m_currentSelectObj;
     MyMask m_mask;
+    QFutureWatcher<QPixmap> *m_watcher = nullptr;
+    QWidget* m_currentSelectWidget = nullptr;
+
+private:
+    QStringList getImagePaths(const QString &folderPath);
+    void saveCacheToServer();
 
 private slots:
     void slt_requestFinishedSlot(QNetworkReply *networkReply);
     void slt_imageLoadSuccessed(QString filePath);
     void slt_mousePressedImage(QJsonObject obj);
+    void slt_watcherFinished();
+    void slt_btnClicked();
 };
 
 #endif // ANNOTATIONDATAPAGE_H

@@ -5,6 +5,8 @@
 #include <QApplication>
 #include <QDebug>
 #include <QTimer>
+#include <QJsonDocument>
+#include "appdatabasebase.h"
 static int originalFontSize = 50;
 static QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> g_allImageCache;
 ImagePreviewWidget::ImagePreviewWidget(QWidget *parent)
@@ -49,10 +51,34 @@ bool ImagePreviewWidget::eventFilter(QObject *watched, QEvent *event) {
     return QWidget::eventFilter(watched, event);
 }
 
+QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> ImagePreviewWidget::getImageCache()
+{
+    return g_allImageCache;
+}
+
 void ImagePreviewWidget::showEvent(QShowEvent *event)
 {
     showTipLabel("预览模式");
     this->setFocus();
+
+    // 重置视图
+    fitToView();
+    scene()->setSceneRect(m_pixmapItem->boundingRect());
+
+    // 清除已有标注
+    for(auto &annotation : m_rectAnnotations) {
+        scene()->removeItem(annotation.rect);
+        scene()->removeItem(annotation.text);
+        delete annotation.rect;
+        delete annotation.text;
+    }
+    m_rectAnnotations.clear();
+    m_currentAnnotation = nullptr;
+}
+
+void ImagePreviewWidget::closeEvent(QCloseEvent *event)
+{
+
 }
 
 void ImagePreviewWidget::loadImage(const QString &path)
@@ -86,8 +112,12 @@ void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)
     //上一次的处理结果保存到缓存中
     saveToCache();
 
+    if(!key.isEmpty())
+     m_imageKey = key;
+
     if(pixmap.isNull())  {
         qWarning() << "Failed to load image:";
+        m_pixmapItem->setPixmap(QPixmap());
         return;
     }
 
@@ -107,7 +137,6 @@ void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)
     }
     m_rectAnnotations.clear();
     m_currentAnnotation = nullptr;
-    m_imageKey = key;
 
     //缓存中如果处理过了，就显示出来
     drawFromCache();
@@ -167,7 +196,7 @@ void ImagePreviewWidget::drawFromCache()
             // 创建文本项
             annotation.text  = new ScalableTextItem(text);
             annotation.text->setDefaultTextColor(m_rectColor);
-            annotation.text->setPos(QPointF(rect.x(),rect.y()));
+            annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
             annotation.text->setZValue(1);  // 确保文本在矩形上方
             QFont font;
             font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
@@ -182,14 +211,16 @@ void ImagePreviewWidget::drawFromCache()
 void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
 {
     //todo 展示所有的事件
-    QJsonArray array = obj.value("data").toArray();
+    QJsonArray array = obj.value("data").toObject().value("events").toArray();
     for(auto temp : array) {
-        double x = temp.toObject().value("x").toDouble();
-        double y = temp.toObject().value("x").toDouble();
-        double width = temp.toObject().value("x").toDouble();
-        double height = temp.toObject().value("x").toDouble();
-        QRectF rect(x,y,width,height);
-        QString text = temp.toObject().value("text").toString();
+        
+        double x1 = temp.toObject().value("bbox_left_top").toDouble();
+        double y1 = temp.toObject().value("bbox_right_top").toDouble();
+        double x2 = temp.toObject().value("bbox_right_bottom").toDouble();
+        double y2 = temp.toObject().value("bbox_left_bottom").toDouble();
+        QRectF rect(x1,y1,x2-x1,y2-y1);
+
+        QString text = temp.toObject().value("event_type").toString();
 
         // 创建矩形项
         Annotation annotation;
@@ -203,7 +234,7 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         // 创建文本项
         annotation.text  = new ScalableTextItem(text);
         annotation.text->setDefaultTextColor(m_rectColor);
-        annotation.text->setPos(QPointF(rect.x(),rect.y()));
+        annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
         annotation.text->setZValue(1);  // 确保文本在矩形上方
         QFont font;
         font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
@@ -211,6 +242,44 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         scene()->addItem(annotation.text);
         // 添加到列表并设置当前标注
         m_rectAnnotations.append(annotation);
+    }
+}
+
+void ImagePreviewWidget::readEvents2Cache(QJsonObject obj)
+{
+    QJsonArray dataArray = obj.value("data").toArray();
+    for(auto data : dataArray)
+    {
+        QString bagId = data.toObject().value("bag_id").toString();
+        QString imageId = data.toObject().value("image_id").toString();
+        QString key = bagId + "-" + imageId;
+        QString strData = data.toObject().value("data").toString();
+        QJsonDocument doc = QJsonDocument::fromJson(strData.toUtf8());
+        auto eventArray = doc.array();
+
+        QList<ImagePreviewWidget::STU_Annotation> list;
+        for(auto event : eventArray)
+        {
+            STU_Annotation stuAnnotation;
+            double x1 = event.toObject().value("x1").toDouble();
+            double y1 = event.toObject().value("x2").toDouble();
+            double x2 = event.toObject().value("y1").toDouble();
+            double y2 = event.toObject().value("y2").toDouble();
+            QRectF rect(x1,y1,x2-x1,y2-y1);
+            stuAnnotation.rect = rect;
+            stuAnnotation.text = event.toObject().value("event_type").toString();
+            list.push_back(stuAnnotation);
+        }
+
+        //插入到缓存
+        if(g_allImageCache.find(key) == g_allImageCache.end())
+        {
+            g_allImageCache.insert(key,list);
+        }
+        else
+        {
+            g_allImageCache.find(key).value() = list;
+        }
     }
 }
 
@@ -228,7 +297,12 @@ void ImagePreviewWidget::slt_setPersonHandleEnd()
 void ImagePreviewWidget::slt_setPersonHandleCancle()
 {
     if(m_imageKey.split("-").size() == 2)
-     emit sig_personHandleEnd(m_imageKey.split("-")[1],false);
+        emit sig_personHandleEnd(m_imageKey.split("-")[1],false);
+}
+
+void ImagePreviewWidget::slt_btnClicked()
+{
+
 }
 
 // =============== 坐标转换系统 ===============
@@ -571,7 +645,7 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
     // 创建文本项
     annotation.text  = new ScalableTextItem(m_labelText);
     annotation.text->setDefaultTextColor(m_rectColor);
-    annotation.text->setPos(startPos);
+    annotation.text->setPos(QPointF(startPos.x(),startPos.y()-20));
     annotation.text->setZValue(1);  // 确保文本在矩形上方
     QFont font;
     font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）

@@ -4,7 +4,11 @@ FORMS += \
     $$PWD/login/loginwidget.ui \
     $$PWD/mainwindow/mainwindowwidget.ui \
     $$PWD/menubar/menubar.ui \
-    $$PWD/titlebar/titlebar.ui
+    $$PWD/titlebar/titlebar.ui \
+    $$PWD/workarea/datamanager/progressbar.ui \
+    $$PWD/workarea/usermanager/adduserpage.ui \
+    $$PWD/workarea/usermanager/usercard.ui \
+    $$PWD/workarea/usermanager/usermanager.ui
 
 HEADERS += \
     $$PWD/common/appcommonbase.h \
@@ -17,7 +21,11 @@ HEADERS += \
     $$PWD/mainwindow/mainwindowwidget.h \
     $$PWD/menubar/menubar.h \
     $$PWD/titlebar/titlebar.h \
-    $$PWD/workarea/datamanager/imagepreviewwidget.h
+    $$PWD/workarea/datamanager/imagepreviewwidget.h \
+    $$PWD/workarea/datamanager/progressbar.h \
+    $$PWD/workarea/usermanager/adduserpage.h \
+    $$PWD/workarea/usermanager/usercard.h \
+    $$PWD/workarea/usermanager/usermanager.h
 
 SOURCES += \
     $$PWD/common/appcommonbase.cpp \
@@ -30,7 +38,11 @@ SOURCES += \
     $$PWD/mainwindow/mainwindowwidget.cpp \
     $$PWD/menubar/menubar.cpp \
     $$PWD/titlebar/titlebar.cpp \
-    $$PWD/workarea/datamanager/imagepreviewwidget.cpp
+    $$PWD/workarea/datamanager/imagepreviewwidget.cpp \
+    $$PWD/workarea/datamanager/progressbar.cpp \
+    $$PWD/workarea/usermanager/adduserpage.cpp \
+    $$PWD/workarea/usermanager/usercard.cpp \
+    $$PWD/workarea/usermanager/usermanager.cpp
 
 INCLUDEPATH += $$PWD\
 $$PWD/common\

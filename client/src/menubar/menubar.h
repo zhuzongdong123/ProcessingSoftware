@@ -26,6 +26,9 @@ public:
     //控制那个按钮选中
     void setMenuCheck(MenuType type);
 
+signals:
+    void sig_menuClicked(QString menuName);
+
 protected:
     void showEvent(QShowEvent *event) override;
 

@@ -5,7 +5,38 @@
 #include <QtConcurrent>
 #include <QPainter>
 #include <QDir>
+#include "batchdownloader.h"
+#include <QDir>
+#include <QDebug>
 
+#include <QPropertyAnimation>
+
+void scrollToWidgetWithAnimation(QScrollArea* scrollArea, QWidget* widget, int duration = 100)
+{
+    if (!scrollArea || !widget) {
+        return;
+    }
+
+    QPropertyAnimation* animation = new QPropertyAnimation(scrollArea->verticalScrollBar(), "value");
+    animation->setDuration(duration);
+    animation->setStartValue(scrollArea->verticalScrollBar()->value());
+
+    // 计算目标位置（使 widget 位于视图中部）
+    QPoint p = widget->pos();
+    int widgetHeight = widget->height();
+    int viewportHeight = scrollArea->viewport()->height();
+    int targetValue = p.y() - (viewportHeight - widgetHeight) / 2;
+
+    // 确保目标值在有效范围内
+    targetValue = qMax(scrollArea->verticalScrollBar()->minimum(),
+                      qMin(targetValue, scrollArea->verticalScrollBar()->maximum()));
+
+    animation->setEndValue(targetValue);
+    animation->setEasingCurve(QEasingCurve::OutQuad);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+static QSize fixSize(315,231);
 AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AnnotationDataPage)
@@ -15,6 +46,12 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     connect(ui->pointsDisplayBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setDisplayPointsItem);
     connect(ui->addHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleEnd);
     connect(ui->deleteHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleCancle);
+    connect(ui->saveBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->returnBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->preImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->nextImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    m_watcher = new QFutureWatcher<QPixmap>();
+    connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
 }
 
 AnnotationDataPage::~AnnotationDataPage()
@@ -24,11 +61,150 @@ AnnotationDataPage::~AnnotationDataPage()
 
 void AnnotationDataPage::setBagId(QString id)
 {
-    //获取bag文件的详情
-    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    ui->girdlayout->clearAll();
+    m_currentSelectWidget = nullptr;
+    ui->imagePreviewWidget->loadImage(QPixmap(),"");
+
+    //从业务数据库中获取所有的事件
+    QString requestUrl = AppDatabaseBase::getInstance()->getBusinessServerUrl();
     this->m_restFulApi.getPostData().clear();
-    m_restFulApi.visitUrl(requestUrl + QString(API_BAG_FILE_DETIAL).arg(id),VisitType::GET,ReplyType::BAG_FILE_DETIAL);
-    m_bagId = id;
+    QJsonObject post_data;
+    QJsonDocument document;
+    QByteArray post_param;
+    post_data.insert("bag_id",id);
+    document.setObject(post_data);
+    post_param = document.toJson(QJsonDocument::Compact);
+    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_ANNOTATION_QUERY_EVENTS,
+                          VisitType::POST,ReplyType::ANNOTATION_QUERY_EVENTS,"application/json",post_param,true);
+
+    QEventLoop loop;
+    QTimer timer;
+    timer.setInterval(10000);  // 设置超时时间 3 秒
+    timer.setSingleShot(true);  // 单次触发
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    timer.start();
+    loop.exec();
+
+    QJsonObject returnObj;
+    QStringList requestUrlList;
+    if(reply->error()==QNetworkReply::NoError)
+    {
+        auto obj=QJsonDocument::fromJson(reply->readAll()).object();
+        if(m_restFulApi.replyResultCheck(obj,reply))
+        {
+            ui->imagePreviewWidget->readEvents2Cache(obj);
+        }
+    }
+
+    QString bagFolderPath = QApplication::applicationDirPath() + "/" + id;
+    QFileInfo fileInfo(bagFolderPath);
+    if(fileInfo.exists() && fileInfo.isDir())
+    {
+        QStringList images = getImagePaths(bagFolderPath);
+        QJsonArray array;
+        int index = 1;
+        for(auto path : images)
+        {
+            QJsonObject imageObj;
+            ImageLoder* imageloder = new ImageLoder();
+            connect(imageloder,&ImageLoder::sig_loadSuccessed,this,&AnnotationDataPage::slt_imageLoadSuccessed,Qt::QueuedConnection);
+            connect(imageloder,&ImageLoder::sig_mousePressed,this,&AnnotationDataPage::sig_mousePressed,Qt::QueuedConnection);
+            connect(imageloder,&ImageLoder::sig_mousePressedImage,this,&AnnotationDataPage::slt_mousePressedImage,Qt::QueuedConnection);
+            connect(this,&AnnotationDataPage::sig_mousePressed,imageloder,&ImageLoder::slt_setImageSelected);
+            connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_personHandleEnd,imageloder,&ImageLoder::slt_setImageHandled);
+            imageObj.insert("id",index);
+            index++;
+            imageObj.insert("bag_id",id);
+            imageObj.insert("file_path",path);
+            QFileInfo fileInfoTemp(path);
+            imageObj.insert("image_id",fileInfoTemp.baseName());
+            imageloder->setImageInfo(imageObj);
+            imageloder->setFixedSize(315,231);
+            ui->girdlayout->pushBack(imageloder);
+            QApplication::processEvents();
+        }
+    }
+}
+
+#include <QDir>
+#include <QFileInfo>
+#include <QStringList>
+#include <QDebug>
+
+QStringList AnnotationDataPage::getImagePaths(const QString &folderPath)
+{
+    QStringList imagePaths;
+
+    // 设置要查找的文件扩展名
+    QStringList filters;
+    filters << "*.jpg" << "*.jpeg" << "*.png";
+
+    // 创建QDir对象并设置过滤器
+    QDir dir(folderPath);
+    dir.setNameFilters(filters);
+    dir.setFilter(QDir::Files  | QDir::NoDotAndDotDot);
+
+    // 获取所有匹配的文件信息
+    QFileInfoList fileList = dir.entryInfoList();
+
+    // 提取绝对路径
+    foreach (const QFileInfo &fileInfo, fileList) {
+        imagePaths.append(fileInfo.absoluteFilePath());
+    }
+
+    return imagePaths;
+}
+
+void AnnotationDataPage::saveCacheToServer()
+{
+    ui->imagePreviewWidget->saveToCache();
+    QJsonArray insertArray;
+    QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> cacheMap = ui->imagePreviewWidget->getImageCache();
+    QMap<QString, QList<ImagePreviewWidget::STU_Annotation>>::iterator ite;
+    for(ite = cacheMap.begin(); ite != cacheMap.end(); ite++)
+    {
+        QJsonObject eventObj;
+        {
+            QList<ImagePreviewWidget::STU_Annotation> list = ite.value();
+            QString key = ite.key();
+            if(list.size() > 0 && key.split("-").size() >= 2)
+            {
+                eventObj.insert("bag_id",key.split("-")[0]);
+                eventObj.insert("image_id",key.split("-")[1]);
+                QJsonArray dataArrayTemp;
+                for(auto eventObj : list)
+                {
+                    QJsonObject objTemp;
+                    objTemp.insert("x1",eventObj.rect.x());
+                    objTemp.insert("x2",eventObj.rect.y());
+                    objTemp.insert("y1",eventObj.rect.x() + eventObj.rect.width());
+                    objTemp.insert("y2",eventObj.rect.y() + eventObj.rect.height());
+                    objTemp.insert("event_type",eventObj.text);
+                    objTemp.insert("isHandle",eventObj.isHandle);
+                    dataArrayTemp.push_back(objTemp);
+                }
+                QString byte = QJsonDocument(dataArrayTemp).toJson(QJsonDocument::Compact);
+                eventObj.insert("data",byte);
+            }
+        }
+
+        if(!eventObj.isEmpty())
+        {
+            insertArray.push_back(eventObj);
+        }
+    }
+
+    QString requestUrl = AppDatabaseBase::getInstance()->getBusinessServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    QJsonObject post_data;
+    QJsonDocument document;
+    QByteArray post_param;
+    post_data.insert("data",insertArray);
+    document.setObject(post_data);
+    post_param = document.toJson(QJsonDocument::Compact);
+    m_restFulApi.visitUrl(requestUrl + API_ANNOTATION_ADD_EVENTS,
+                          VisitType::POST,ReplyType::ANNOTATION_ADD_EVENTS,"application/json",post_param,true);
 }
 
 void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
@@ -118,19 +294,6 @@ void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
             currentPicture.loadFromData(picArray);
             QString key = networkReply->property("key").toString();
             ui->imagePreviewWidget->loadImage(currentPicture,key);
-
-            //请求点云图片
-            {
-                QString url = networkReply->property("visitPointUrl").toString();
-                this->m_restFulApi.getPostData().clear();
-                m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::POINT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
-            }
-
-            {
-                QString url = networkReply->property("visitEventUrl").toString();
-                this->m_restFulApi.getPostData().clear();
-                m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::EVENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
-            }
         }
         else
         {
@@ -181,28 +344,99 @@ void AnnotationDataPage::slt_imageLoadSuccessed(QString filePath)
 
 void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
 {
+    m_currentSelectWidget = dynamic_cast<QWidget*>(sender());
     m_currentSelectObj = obj;
-    //获取bag文件的详情
-    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
-    this->m_restFulApi.getPostData().clear();
+
     QString filePath = obj.value("file_path").toString();
-    QStringList list = filePath.split("/");
-    if(list.size() > 0)
+    QString loadFilePath = filePath;
+    QPixmap currentPicture(loadFilePath);
+    if(!currentPicture.isNull())
     {
-        filePath = *(list.end()-1);
+        QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("image_id").toString());
+        ui->imagePreviewWidget->loadImage(currentPicture,key);
     }
-    else
+//    else
+//    {
+//        //获取bag文件的详情
+//        QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+//        this->m_restFulApi.getPostData().clear();
+//        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
+//                              VisitType::GET,ReplyType::CURRENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,5000,QNetworkRequest::Priority::HighPriority);
+//        reply->setProperty("path",filePath);
+//        QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("id").toInt());
+//        reply->setProperty("key",key);
+//        reply->setProperty("visitPointUrl",requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
+
+//        filePath = filePath.replace(".jpg","");
+//        filePath = filePath.replace(".png","");
+//        reply->setProperty("visitEventUrl",requestUrl + QString(API_EVENT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
+//        m_mask.insertMask(ui->imagePreviewWidget,"background-color:rgb(0,0,0,200)",0.5,"加载中,请稍后");
+//    }
+}
+
+void AnnotationDataPage::slt_watcherFinished()
+{
+
+}
+
+void AnnotationDataPage::slt_btnClicked()
+{
+    //保存缓存到数据库
+    saveCacheToServer();
+
+    QPushButton* btn = dynamic_cast<QPushButton*>(sender());
+    if(nullptr != btn)
     {
-        return;
+        if(btn == ui->returnBtn)
+        {
+            emit sig_return();
+        }
+        else if(btn == ui->preImageBtn && nullptr != m_currentSelectWidget)
+        {
+            QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
+            int index = widgets->indexOf(m_currentSelectWidget);
+            if (index <= 0) { // 第一个或无效
+                return;
+            }
+            QWidget* preWidget = widgets->at(index  - 1);
+            if(preWidget != nullptr)
+            {
+                ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(preWidget);
+                if(nullptr != imageLoder)
+                {
+                    emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
+                    emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
+                    m_currentSelectWidget = imageLoder;
+                    imageLoder->setSelected(true);
+                    QApplication::processEvents();
+                    scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
+                }
+            }
+        }
+        else if(btn == ui->nextImageBtn && nullptr != m_currentSelectWidget)
+        {
+            QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
+            int index = widgets->indexOf(m_currentSelectWidget);
+            if (index < 0 || index >= (widgets->size()  - 1)) { // 最后一个或无效
+                return;
+            }
+
+            QWidget* nextWidget = widgets->at(index  + 1);
+            if(nextWidget != nullptr)
+            {
+                ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(nextWidget);
+                if(nullptr != imageLoder)
+                {
+                    emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
+                    emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
+                    m_currentSelectWidget = imageLoder;
+                    imageLoder->setSelected(true);
+                    QApplication::processEvents();
+                    scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
+                }
+            }
+        }
     }
-    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
-                          VisitType::GET,ReplyType::CURRENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,5000,QNetworkRequest::Priority::HighPriority);
-    reply->setProperty("path",filePath);
-    QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("id").toInt());
-    reply->setProperty("key",key);
-    reply->setProperty("visitPointUrl",requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
-    reply->setProperty("visitEventUrl",requestUrl + QString(API_EVENT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
-    m_mask.insertMask(ui->imagePreviewWidget,"background-color:rgb(0,0,0,200)",0.5,"加载中,请稍后");
 }
 
 ImageLoder::ImageLoder(QWidget *parent) : QWidget(parent)
@@ -228,22 +462,44 @@ void ImageLoder::setImageInfo(QJsonObject obj)
 {
     m_obj = obj;
 
-    //获取bag文件的详情
-    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
-    this->m_restFulApi.getPostData().clear();
-    QString filePath = obj.value("file_path").toString();
-    QStringList list = filePath.split("/");
-    if(list.size() > 0)
+    QString loadFilePath = obj.value("file_path").toString();
+    m_watcher->setFuture(QtConcurrent::run([=](){
+        //获取字节流构造 QPixmap 对象
+        QPixmap currentPicture(loadFilePath);
+        //currentPicture.loadFromData(picArray);
+        if(currentPicture.isNull())
+        {
+            return QPixmap();
+        }
+        QImage image = currentPicture.toImage();
+        try {
+            if (!image.isNull())  {
+                return QPixmap::fromImage(image.scaled(
+                    fixSize,
+                    Qt::KeepAspectRatio,
+                    Qt::SmoothTransformation
+                ));
+            }
+            qDebug() << "QPixmap()";
+            return QPixmap();
+        } catch (...) {
+            return QPixmap();
+        }
+    }));
+}
+
+QJsonObject ImageLoder::getImageInfo()
+{
+    return m_obj;
+}
+
+void ImageLoder::setSelected(bool value)
+{
+    if(m_isSelected != value)
     {
-        filePath = *(list.end()-1);
+        m_isSelected = value;
+        update();
     }
-    else
-    {
-        return;
-    }
-    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
-                          VisitType::GET,ReplyType::IMAGE_DETIAL_GET);
-    reply->setProperty("path",filePath);
 }
 
 void ImageLoder::slt_setImageHandled(QString id, bool isHandle)
@@ -273,6 +529,8 @@ void ImageLoder::slt_setImageSelected(QString id)
             update();
         }
     }
+
+    QApplication::processEvents();
 }
 
 void ImageLoder::paintEvent(QPaintEvent *event)
@@ -383,7 +641,6 @@ void ImageLoder::mousePressEvent(QMouseEvent *event)
     emit sig_mousePressedImage(m_obj);
 }
 
-static QSize fixSize(315,231);
 void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
 {
     if(replyTypeMap.value(networkReply)==ReplyType::IMAGE_DETIAL_GET)

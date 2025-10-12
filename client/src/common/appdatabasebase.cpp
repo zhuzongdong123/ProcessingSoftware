@@ -13,7 +13,7 @@ AppDatabaseBase *AppDatabaseBase::getInstance()
 
 QString AppDatabaseBase::getBusinessServerUrl()
 {
-    return QString("http://%1:%2").arg(m_serverIp).arg(m_businessPort);
+    return QString("http://%1:%2").arg(m_businessIp).arg(m_businessPort);
 }
 
 QString AppDatabaseBase::getBagServerUrl()

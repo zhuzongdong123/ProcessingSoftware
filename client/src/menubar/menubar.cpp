@@ -7,6 +7,10 @@ MenuBar::MenuBar(QWidget *parent) :
     ui(new Ui::MenuBar)
 {
     ui->setupUi(this);
+
+    connect(ui->dataManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("数据管理");});
+    connect(ui->userManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("用户管理");});
+    connect(ui->sysManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("系统管理");});
 }
 
 MenuBar::~MenuBar()
@@ -32,12 +36,12 @@ void MenuBar::setMenuCheck(MenuBar::MenuType type)
 
 void MenuBar::showEvent(QShowEvent *event)
 {
-    if(AppDatabaseBase::getInstance()->m_userType != "0")
+    if(AppDatabaseBase::getInstance()->m_userType == "1")
     {
-        ui->userManager->hide();
+        ui->userManager->show();
     }
     else
     {
-        ui->userManager->show();
+        ui->userManager->hide();
     }
 }

@@ -1,5 +1,6 @@
 ﻿#include "hrhttpserver.h"
 #include "identitycontroller.h"
+#include "annotation.h"
 #include <QJsonDocument>
 #include "appglobal.h"
 #include <QThread>
@@ -90,6 +91,10 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
     else if("identity" == urlList.at(2) && "authentication" == urlList.at(3)) //身份验证
     {
         IdentityController().service(request,response);
+    }
+    else if("annotation" == urlList.at(2) && "record" == urlList.at(3)) //标注记录相关
+    {
+        Annotition().service(request,response);
     }
     else
     {
