@@ -36,7 +36,7 @@ void scrollToWidgetWithAnimation(QScrollArea* scrollArea, QWidget* widget, int d
     animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
-static QSize fixSize(315,231);
+static QSize fixSize(240,150);
 AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AnnotationDataPage)
@@ -50,6 +50,7 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     connect(ui->returnBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->preImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->nextImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->annotationEndBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
 }
@@ -61,6 +62,7 @@ AnnotationDataPage::~AnnotationDataPage()
 
 void AnnotationDataPage::setBagId(QString id)
 {
+    m_bagId = id;
     ui->girdlayout->clearAll();
     m_currentSelectWidget = nullptr;
     ui->imagePreviewWidget->loadImage(QPixmap(),"");
@@ -120,7 +122,7 @@ void AnnotationDataPage::setBagId(QString id)
             QFileInfo fileInfoTemp(path);
             imageObj.insert("image_id",fileInfoTemp.baseName());
             imageloder->setImageInfo(imageObj);
-            imageloder->setFixedSize(315,231);
+            imageloder->setFixedSize(fixSize);
             ui->girdlayout->pushBack(imageloder);
             QApplication::processEvents();
         }
@@ -436,6 +438,37 @@ void AnnotationDataPage::slt_btnClicked()
                 }
             }
         }
+        else if(btn == ui->annotationEndBtn)
+        {
+            {
+                QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+                this->m_restFulApi.getPostData().clear();
+                QJsonObject post_data;
+                QJsonDocument document;
+                QByteArray post_param;
+                post_data.insert("status","annotated");
+                document.setObject(post_data);
+                post_param = document.toJson(QJsonDocument::Compact);
+                m_restFulApi.visitUrl(requestUrl + QString(API_BAG_ANNOTATION_STATUS_SET).arg(m_bagId),
+                                      VisitType::POST,ReplyType::BAG_ANNOTATION_STATUS_SET2,"application/json",post_param,true,5000, QNetworkRequest::Priority::HighPriority);
+            }
+
+            {
+                QString requestUrl = AppDatabaseBase::getInstance()->getBusinessServerUrl();
+                this->m_restFulApi.getPostData().clear();
+                QJsonObject post_data;
+                QJsonDocument document;
+                QByteArray post_param;
+                post_data.insert("bag_id",m_bagId);
+                post_data.insert("sentry_id",AppDatabaseBase::getInstance()->m_userId);
+                post_data.insert("time",QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+                post_data.insert("sentry_name",AppDatabaseBase::getInstance()->m_userName);
+                document.setObject(post_data);
+                post_param = document.toJson(QJsonDocument::Compact);
+                m_restFulApi.visitUrl(requestUrl + API_ANNOTATION_ADD,
+                                      VisitType::POST,ReplyType::ANNOTATION_ADD,"application/json",post_param,true,5000);
+            }
+        }
     }
 }
 
@@ -699,6 +732,26 @@ void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
         {
             m_errorInfo = "加载失败";
             emit sig_loadFinished();
+        }
+        networkReply->deleteLater();
+    }
+    else if(replyTypeMap.value(networkReply)==ReplyType::BAG_ANNOTATION_STATUS_SET2)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            QApplication::processEvents();
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            TipsDlgView* dlg = new TipsDlgView("标注状态更新成功", nullptr);
+            dlg->startTimer();
+            dlg->show();
+        }
+        else
+        {
+            QApplication::processEvents();
+            TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+            dlg->startTimer();
+            dlg->show();
         }
         networkReply->deleteLater();
     }

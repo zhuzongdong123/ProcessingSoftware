@@ -187,7 +187,7 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                         if(ui->tableWidget->item(n,COLNAME::UUID)->text().toInt() == id)
                         {
                             //获取标注人
-                            if(dataObj.toObject().value("annotation_status").toString() == "annotating")
+                            if(dataObj.toObject().value("annotation_status").toString() != "unannotated")
                             {
                                 QJsonObject sentryInfo = queryBagRecordSentry(ui->tableWidget->item(n,COLNAME::UUID)->text());
                                 if(!sentryInfo.isEmpty())
@@ -198,21 +198,12 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                             }
 
                              ui->tableWidget->item(n,COLNAME::drawStatus)->setText(value2AnnotationName(dataObj.toObject().value("annotation_status").toString()));
-
-                             //解析或者标注状态
-                             if(value2AnnotationName(dataObj.toObject().value("annotation_status").toString()) == "已标注")
-                             {
-                                 ui->tableWidget->item(n,COLNAME::drawStatus)->setForeground(QColor("#00DF82"));
-                             }
-                             else if(value2AnnotationName(dataObj.toObject().value("annotation_status").toString()) == "标注中")
-                             {
-                                 ui->tableWidget->item(n,COLNAME::drawStatus)->setForeground(QColor("#FFC86B"));
-                             }
-
                              break;
                         }
                     }
                 }
+
+                resetTableColor();
             }
         }
         networkReply->deleteLater();
@@ -759,6 +750,9 @@ void DataManager::resetTableInfo(QJsonObject objResult)
 
     //获取标注状态
     getAllAnnotationStatus();
+
+    //居中显示
+    resetTableColor();
 }
 
 void DataManager::processData(QString id)
@@ -782,9 +776,10 @@ void DataManager::processData(QString id)
             continue;
 
         ui->tableWidget->item(n,COLNAME::handleStatus)->setText("解析中");
-        ui->tableWidget->item(n,COLNAME::handleStatus)->setForeground(QColor("#FFC86B"));
         break;
     }
+
+    resetTableColor();
 }
 
 void DataManager::annotationData(QString id)
@@ -1021,37 +1016,7 @@ void DataManager::displayTable()
 //        ui->tableWidget->setCellWidget(rowIndex,COLNAME::operation,widget2);
     }
 
-    //居中显示
-    int nCount = ui->tableWidget->rowCount();
-    int nClumn = ui->tableWidget->columnCount();
-    for (int n = 0; n < nCount;n++)
-    {
-        for (int m = 0; m < nClumn ;m++)
-        {
-            if(nullptr == ui->tableWidget->item(n,m))
-                continue;
-
-            ui->tableWidget->item(n,m)->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-            ui->tableWidget->item(n,m)->setToolTip(ui->tableWidget->item(n,m)->text());
-
-            //解析或者标注状态
-            if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "已解析") ||
-                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "已标注"))
-            {
-                ui->tableWidget->item(n,m)->setForeground(QColor("#00DF82"));
-            }
-            else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "解析中") ||
-                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "标注中"))
-            {
-                ui->tableWidget->item(n,m)->setForeground(QColor("#FFC86B"));
-            }
-        }
-    }
-
-    for(int i = 0; i< ui->tableWidget->rowCount(); i++)
-    {
-       ui->tableWidget->resizeRowToContents(i);
-    }
+    resetTableColor();
 }
 
 bool DataManager::resetCurrentBagEvents(QString bagId)
@@ -1279,4 +1244,46 @@ QWidget* DataManager::getMainWindow()
             return mainWin;
     }
     return nullptr;
+}
+
+void DataManager::resetTableColor()
+{
+    //居中显示
+    int nCount = ui->tableWidget->rowCount();
+    int nClumn = ui->tableWidget->columnCount();
+    for (int n = 0; n < nCount;n++)
+    {
+        for (int m = 0; m < nClumn ;m++)
+        {
+            if(nullptr == ui->tableWidget->item(n,m))
+                continue;
+
+            ui->tableWidget->item(n,m)->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            ui->tableWidget->item(n,m)->setToolTip(ui->tableWidget->item(n,m)->text());
+
+            //解析或者标注状态
+            if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "已解析") ||
+                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "已标注") ||
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "已下载"))
+            {
+                ui->tableWidget->item(n,m)->setForeground(QColor("#00DF82"));
+            }
+            else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "解析中") ||
+                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "标注中"))
+            {
+                ui->tableWidget->item(n,m)->setForeground(QColor("#FFC86B"));
+            }
+            else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "未解析") ||
+                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "未标注") ||
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "未下载"))
+            {
+                ui->tableWidget->item(n,m)->setForeground(QColor(255,0,0));
+            }
+        }
+    }
+
+    for(int i = 0; i< ui->tableWidget->rowCount(); i++)
+    {
+       ui->tableWidget->resizeRowToContents(i);
+    }
 }

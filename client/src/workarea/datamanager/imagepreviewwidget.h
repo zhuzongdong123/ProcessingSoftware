@@ -16,6 +16,140 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <QHash>
+#include <QKeySequence>
+#include <QString>
+
+class ExtendedKeyMapper {
+private:
+    //组合键对应的文字映射
+    QHash<QKeySequence, QString> keySequenceMap;
+    QHash<int, QString> keyMap;
+
+    //文字对应的颜色映射
+    QHash<QString, QColor> keyColorMap;
+
+    //英文事件和中文事件的映射
+    QHash<QString, QString> en2CMap;
+public:
+    ExtendedKeyMapper() {
+        // 初始化基本映射
+        addMapping(Qt::Key_F1, "裂缝");
+        addMapping(Qt::Key_F2, "坑槽");
+        addMapping(Qt::Key_F3, "洒落物");
+        addMapping(Qt::Key_F4, "修补");
+        addMapping(Qt::Key_F5, "标线缺损");
+        addMapping(Qt::Key_F6, "标志牌_变形");
+        addMapping(Qt::Key_F7, "标志牌_遮挡");
+        addMapping(Qt::Key_F8, "里程桩缺损");
+        addMapping(Qt::Key_F9, "轮廓标缺损");
+        addMapping(Qt::Key_F10, "防眩板缺损");
+        addMapping(Qt::Key_F11, "护栏损坏");
+        addMapping(Qt::Key_F12, "中分带苗木缺失");
+
+        //添加其他组合键
+        addMapping(Qt::Key_Q, "伸缩缝");
+        addMapping(Qt::Key_W, "标志牌");
+        addMapping(Qt::Key_E, "百米桩");
+        addMapping(Qt::Key_R, "公里桩");
+        addMapping(Qt::Key_T, "轮廓标");
+        addMapping(Qt::Key_Y, "防眩板");
+        addMapping(Qt::Key_U, "其他");
+
+        //添加颜色映射
+        addColorMapping("裂缝",QColor("#DA4452"));
+        addColorMapping("坑槽",QColor("#FEA5C9"));
+        addColorMapping("洒落物",QColor("#FFCC55"));
+        addColorMapping("修补",QColor("#47CEAE"));
+        addColorMapping("标线缺损",QColor("#5D9BEA"));
+        addColorMapping("伸缩缝",QColor("#FC7AC3"));
+        addColorMapping("标志牌",QColor("#AB91EA"));
+        addColorMapping("标志牌_变形",QColor("#AB91EA"));
+        addColorMapping("标志牌_遮挡",QColor("#AB91EA"));
+        addColorMapping("百米桩",QColor("#8CBD4F"));
+        addColorMapping("公里桩",QColor("#8CBD4F"));
+        addColorMapping("里程桩缺损",QColor("#8CBD4F"));
+        addColorMapping("轮廓标",QColor("#F97546"));
+        addColorMapping("轮廓标缺损",QColor("#F97546"));
+        addColorMapping("防眩板",QColor("#6DC7EA"));
+        addColorMapping("防眩板缺损",QColor("#6DC7EA"));
+        addColorMapping("护栏损坏",QColor("#FE9743"));
+        addColorMapping("中分带苗木缺失",QColor("#1E9593"));
+        addColorMapping("其他",QColor("#5C7090"));
+
+        //英文转中文的映射
+        adden2CMapping("pit","坑槽");
+        adden2CMapping("litter","洒落物");
+        adden2CMapping("strip_patch","修补");
+        adden2CMapping("lane_gap","标线缺损");
+        adden2CMapping("expansion_gap","伸缩缝");
+        adden2CMapping("signboard","标志牌");
+        adden2CMapping("hundred_pile","坑槽");
+        adden2CMapping("pit","百米桩");
+        adden2CMapping("km_pile","公里桩");
+        adden2CMapping("yellow_circle_outline","轮廓标");
+        adden2CMapping("unglare_plate","防眩板");
+    }
+
+
+    QString mapToString(const QKeyEvent *event) {
+        QKeySequence seq(event->key() | event->modifiers());
+
+        if (keySequenceMap.contains(seq))  {
+            return keySequenceMap[seq];
+        }
+
+        // 回退到简单映射
+        return keyEventToString(event);
+    }
+
+    QColor mapToColor(QString text)
+    {
+        if (keyColorMap.contains(text))  {
+            return keyColorMap[text];
+        }
+        return QColor(255,0,0);
+    }
+
+    QString en2C(QString text)
+    {
+        if (en2CMap.contains(text))  {
+            return en2CMap[text];
+        }
+        return text;
+    }
+
+private:
+    QString keyEventToString(const QKeyEvent *event)
+    {
+        int key = event->key();
+
+        // 从映射表中查找
+        if (keyMap.contains(key))  {
+            return keyMap[key];
+        }
+
+        // 默认返回空字符串（表示不支持的键）
+        return "";
+    }
+
+    void addMapping(const QKeySequence &seq, const QString &value) {
+        keySequenceMap[seq] = value;
+    }
+
+    void addMapping(int key, const QString &value) {
+        keyMap[key] = value;
+    }
+
+    void addColorMapping(QString text, QColor value) {
+        keyColorMap[text] = value;
+    }
+
+    void adden2CMapping(QString en,  QString chinese) {
+        en2CMap[en] = chinese;
+    }
+};
+
 class ImagePreviewWidget : public QGraphicsView
 {
     Q_OBJECT
@@ -123,13 +257,14 @@ private:
     QLabel *m_tipLabel = nullptr;
 
     // 标注配置
-    QColor m_rectColor = Qt::red;
+    //QColor m_rectColor = Qt::red;
     QString m_labelText = "";
 
     // 图片原始尺寸
     QSize m_imageSize;
     QString m_imageKey;
 
+    ExtendedKeyMapper m_extendedKeyMapper;//键值对映射
 };
 
 #endif // IMAGEPREVIEWWIDGET_H

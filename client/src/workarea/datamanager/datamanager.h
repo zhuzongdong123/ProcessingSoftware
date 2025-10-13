@@ -129,6 +129,8 @@ private:
     QJsonObject queryBagRecordSentry(QString bagId);
 
     QWidget *getMainWindow();
+
+    void resetTableColor();
 };
 
 #endif // DATAMANAGER_H

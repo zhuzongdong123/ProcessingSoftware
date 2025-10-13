@@ -152,6 +152,14 @@ void ImagePreviewWidget::loadPointImage(QPixmap pixmap)
 
 void ImagePreviewWidget::saveToCache()
 {
+    if(m_rectAnnotations.size() == 0 && !m_imageKey.isEmpty())
+    {
+        if(g_allImageCache.find(m_imageKey) != g_allImageCache.end())
+        {
+            g_allImageCache.erase(g_allImageCache.find(m_imageKey));
+        }
+    }
+
     if(!m_imageKey.isEmpty() && m_rectAnnotations.size() > 0)
     {
         QList<ImagePreviewWidget::STU_Annotation> list;
@@ -184,10 +192,13 @@ void ImagePreviewWidget::drawFromCache()
             QRectF rect = temp.rect;
             QString text = temp.text;
 
+            text =  m_extendedKeyMapper.en2C(text);
+            QColor color = m_extendedKeyMapper.mapToColor(text);
+
             // 创建矩形项
             Annotation annotation;
             annotation.rect  = new QGraphicsRectItem(rect);
-            QPen pen(m_rectColor,  2);
+            QPen pen(color,  2);
             pen.setCosmetic(true);
             annotation.rect->setPen(pen);
             //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
@@ -195,7 +206,7 @@ void ImagePreviewWidget::drawFromCache()
 
             // 创建文本项
             annotation.text  = new ScalableTextItem(text);
-            annotation.text->setDefaultTextColor(m_rectColor);
+            annotation.text->setDefaultTextColor(color);
             annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
             annotation.text->setZValue(1);  // 确保文本在矩形上方
             QFont font;
@@ -221,11 +232,13 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         QRectF rect(x1,y1,x2-x1,y2-y1);
 
         QString text = temp.toObject().value("event_type").toString();
+        text =  m_extendedKeyMapper.en2C(text);
 
+        QColor color = m_extendedKeyMapper.mapToColor(text);
         // 创建矩形项
         Annotation annotation;
         annotation.rect  = new QGraphicsRectItem(rect);
-        QPen pen(m_rectColor,  2);
+        QPen pen(color,  2);
         pen.setCosmetic(true);
         annotation.rect->setPen(pen);
         //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
@@ -233,7 +246,7 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
 
         // 创建文本项
         annotation.text  = new ScalableTextItem(text);
-        annotation.text->setDefaultTextColor(m_rectColor);
+        annotation.text->setDefaultTextColor(color);
         annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
         annotation.text->setZValue(1);  // 确保文本在矩形上方
         QFont font;
@@ -379,35 +392,15 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
         showTipLabel("预览模式");
     }
     //F1-F9切换模式
-    else if(event->key() == Qt::Key_F1) {
-        setDrawEnabled(true);
-        showTipLabel("标绘模式");
-
-        setLabelText("事件1");
-    }
-    else if(event->key() == Qt::Key_F2) {
-        setDrawEnabled(true);
-        showTipLabel("标绘模式");
-
-        setLabelText("事件2");
-    }
-    else if(event->key() == Qt::Key_F3) {
-        setDrawEnabled(true);
-        showTipLabel("标绘模式");
-
-        setLabelText("事件3");
-    }
-    else if(event->key() == Qt::Key_F4) {
-        setDrawEnabled(true);
-        showTipLabel("标绘模式");
-
-        setLabelText("事件4");
-    }
-    else if(event->key() == Qt::Key_F5) {
-        setDrawEnabled(true);
-        showTipLabel("标绘模式");
-
-        setLabelText("事件5");
+    else
+    {
+        QString eventName = m_extendedKeyMapper.mapToString(event);
+        if(!m_extendedKeyMapper.mapToString(event).isEmpty())
+        {
+            setDrawEnabled(true);
+            showTipLabel("标绘模式");
+            setLabelText(eventName);
+        }
     }
 }
 
@@ -633,10 +626,13 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
         return;
     }
 
+    m_labelText =  m_extendedKeyMapper.en2C(m_labelText);
+    QColor color = m_extendedKeyMapper.mapToColor(m_labelText);
+
     // 创建矩形项
     Annotation annotation;
     annotation.rect  = new QGraphicsRectItem(QRectF(startPos, QSizeF()));
-    QPen pen(m_rectColor,  2);
+    QPen pen(color,  2);
     pen.setCosmetic(true);
     annotation.rect->setPen(pen);
     //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
@@ -644,7 +640,7 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
 
     // 创建文本项
     annotation.text  = new ScalableTextItem(m_labelText);
-    annotation.text->setDefaultTextColor(m_rectColor);
+    annotation.text->setDefaultTextColor(color);
     annotation.text->setPos(QPointF(startPos.x(),startPos.y()-20));
     annotation.text->setZValue(1);  // 确保文本在矩形上方
     QFont font;
@@ -659,12 +655,15 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
 
 void ImagePreviewWidget::deleteRectanglesInArea(const QRectF &sceneRect)
 {
+    const qreal epsilon = 2;
+    QRectF expandedSceneRect = sceneRect.adjusted(-epsilon,  -epsilon, epsilon, epsilon);
+
     // 使用场景坐标进行精确相交检测
     for(auto it = m_rectAnnotations.begin();  it != m_rectAnnotations.end();  )
     {
         // 关键修改1：使用场景边界框(sceneBoundingRect)代替局部坐标
         QRectF itemSceneRect = it->rect->sceneBoundingRect();
-        if(sceneRect.contains(itemSceneRect))
+        if(expandedSceneRect.contains(itemSceneRect))
         {
             // 关键修改2：安全删除检测
             if(m_currentAnnotation &&
@@ -730,13 +729,7 @@ bool ImagePreviewWidget::isDrawEnabled() const
 
 void ImagePreviewWidget::setRectColor(const QColor &color)
 {
-    if(m_rectColor == color) return;
 
-    m_rectColor = color;
-//    for(auto &annotation : m_rectAnnotations) {
-//        annotation.rect->setPen(QPen(color,  2));
-//        annotation.text->setDefaultTextColor(color);
-//    }
 }
 
 void ImagePreviewWidget::setLabelText(const QString &text)

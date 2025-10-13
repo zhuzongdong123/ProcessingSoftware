@@ -41,6 +41,7 @@ void MainWindowWidget::createConnect()
 
 void MainWindowWidget::slt_showDefaultPage()
 {
+    QApplication::processEvents();
     if(nullptr == m_dataManagerPage)
     {
         m_dataManagerPage = new DataManager(ui->stackedWidget);
@@ -50,6 +51,7 @@ void MainWindowWidget::slt_showDefaultPage()
 
     ui->stackedWidget->setCurrentWidget(m_dataManagerPage);
     ui->menuBar->setMenuCheck(MenuBar::MenuType::DATA_MANAGER);
+    QApplication::processEvents();
 }
 
 void MainWindowWidget::sig_turn2BagDetialPage(QString id)
