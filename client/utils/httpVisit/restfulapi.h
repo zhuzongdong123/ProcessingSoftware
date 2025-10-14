@@ -59,8 +59,12 @@
 #define API_IMAGES_LIST_GET "/api/v1/subdata/%1/images"
 //获取图片详情
 #define API_IMAGE_DETIAL_GET       "/api/v1/subdata/%1/%2/images"
-#define API_POINT_IMAGE_DETIAL_GET "/api/v1/subdata/%1/%2/pointclouds"
+#define API_POINT_IMAGE_DETIAL_GET "/api/v1/subdata/projection/%1/%2"
 #define API_EVENT_IMAGE_DETIAL_GET "/api/v1/subdata/%1/%2/events"
+//获取像素点对应的经纬度坐标
+#define API_EVENT_CALC_LATLON_GET "/api/v1/subdata/calc_latlon"
+//获取像素点对应的尺寸
+#define API_EVENT_CALC_SCALE_GET "/api/v1/subdata/calc_scale"
 
 /*
  *提供restfull便携接口类外使用
@@ -94,6 +98,8 @@ enum ReplyType
     ANNOTATION_ADD_EVENTS,
     ANNOTATION_QUERY,
     ANNOTATION_QUERY_EVENTS,
+    EVENT_CALC_LATLON_GET,
+    EVENT_CALC_SCALE_GET,
 };
 
 enum class VisitType

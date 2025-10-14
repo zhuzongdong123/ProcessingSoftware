@@ -46,11 +46,21 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     connect(ui->pointsDisplayBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setDisplayPointsItem);
     connect(ui->addHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleEnd);
     connect(ui->deleteHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleCancle);
-    connect(ui->saveBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->returnBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->preImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->nextImageBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
     connect(ui->annotationEndBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->clearEventsBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->coordinatePickingBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+    connect(ui->rangingBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
+
+    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_cancleRangingSelected,this,[=](){
+       ui->rangingBtn->setChecked(false);
+    });
+    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_cancleCoordinatePickingSelected,this,[=](){
+       ui->coordinatePickingBtn->setChecked(false);
+    });
+
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
 }
@@ -311,10 +321,13 @@ void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
         //如果请求无错
         if(networkReply->error()==QNetworkReply::NoError)
         {
-            QByteArray picArray = networkReply->readAll();
+            QString picArray = networkReply->readAll();
+            QByteArray decodedData = QByteArray::fromBase64(picArray.toLatin1());
             QPixmap currentPicture;
-            currentPicture.loadFromData(picArray);
-            ui->imagePreviewWidget->loadPointImage(currentPicture);
+            currentPicture.loadFromData(decodedData);
+            QString key = networkReply->property("key").toString();
+            if(!currentPicture.isNull())
+                ui->imagePreviewWidget->loadPointImage(currentPicture,key);
         }
         networkReply->deleteLater();
     }
@@ -352,28 +365,27 @@ void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
     QString filePath = obj.value("file_path").toString();
     QString loadFilePath = filePath;
     QPixmap currentPicture(loadFilePath);
+    QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("image_id").toString());
     if(!currentPicture.isNull())
     {
-        QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("image_id").toString());
         ui->imagePreviewWidget->loadImage(currentPicture,key);
     }
-//    else
-//    {
-//        //获取bag文件的详情
-//        QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
-//        this->m_restFulApi.getPostData().clear();
-//        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath),
-//                              VisitType::GET,ReplyType::CURRENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,5000,QNetworkRequest::Priority::HighPriority);
-//        reply->setProperty("path",filePath);
-//        QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("id").toInt());
-//        reply->setProperty("key",key);
-//        reply->setProperty("visitPointUrl",requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
+    else
+    {
+        TipsDlgView* dlg = new TipsDlgView("未找到资源", nullptr);
+        dlg->startTimer();
+        dlg->show();
+        return;
+    }
 
-//        filePath = filePath.replace(".jpg","");
-//        filePath = filePath.replace(".png","");
-//        reply->setProperty("visitEventUrl",requestUrl + QString(API_EVENT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(filePath));
-//        m_mask.insertMask(ui->imagePreviewWidget,"background-color:rgb(0,0,0,200)",0.5,"加载中,请稍后");
-//    }
+    QFileInfo fileinfo(filePath);
+    QString fileName = fileinfo.baseName();
+    QString suffix = fileinfo.suffix();
+    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(fileName + "." + suffix),
+                          VisitType::GET,ReplyType::POINT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,20000,QNetworkRequest::Priority::HighPriority);
+    reply->setProperty("key",key);
 }
 
 void AnnotationDataPage::slt_watcherFinished()
@@ -469,6 +481,50 @@ void AnnotationDataPage::slt_btnClicked()
                                       VisitType::POST,ReplyType::ANNOTATION_ADD,"application/json",post_param,true,5000);
             }
         }
+        else if(btn == ui->clearEventsBtn)
+        {
+            ui->imagePreviewWidget->clearEvents();
+        }
+        //获取经纬度
+        else if(btn == ui->coordinatePickingBtn)
+        {
+            if(btn->isChecked())
+            {
+                bool result = ui->imagePreviewWidget->setDrawType(ImagePreviewWidget::DRAW_TYPE::coordinatePicking);
+                if(!result)
+                {
+                    btn->setChecked(false);
+                    TipsDlgView* dlg = new TipsDlgView("标绘模式下，该功能不可用", nullptr);
+                    dlg->startTimer(2000);
+                    dlg->show();
+                    return;
+                }
+            }
+            else
+            {
+                ui->imagePreviewWidget->setDrawType(ImagePreviewWidget::DRAW_TYPE::unkonwn);
+            }
+        }
+        //获取经纬度
+        else if(btn == ui->rangingBtn)
+        {
+            if(btn->isChecked())
+            {
+                bool result = ui->imagePreviewWidget->setDrawType(ImagePreviewWidget::DRAW_TYPE::ranging);
+                if(!result)
+                {
+                    btn->setChecked(false);
+                    TipsDlgView* dlg = new TipsDlgView("标绘模式下，该功能不可用", nullptr);
+                    dlg->startTimer(2000);
+                    dlg->show();
+                    return;
+                }
+            }
+            else
+            {
+                ui->imagePreviewWidget->setDrawType(ImagePreviewWidget::DRAW_TYPE::unkonwn);
+            }
+        }
     }
 }
 
@@ -537,7 +593,7 @@ void ImageLoder::setSelected(bool value)
 
 void ImageLoder::slt_setImageHandled(QString id, bool isHandle)
 {
-    if(m_obj.value("id").toInt() == id.toInt())
+    if(m_obj.value("image_id").toString() == id)
     {
         m_isHandled = isHandle;
         update();
@@ -743,15 +799,17 @@ void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
             QApplication::processEvents();
             auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
             TipsDlgView* dlg = new TipsDlgView("标注状态更新成功", nullptr);
-            dlg->startTimer();
+            dlg->startTimer(2000);
             dlg->show();
+            QApplication::processEvents();
         }
         else
         {
             QApplication::processEvents();
             TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
-            dlg->startTimer();
+            dlg->startTimer(2000);
             dlg->show();
+            QApplication::processEvents();
         }
         networkReply->deleteLater();
     }

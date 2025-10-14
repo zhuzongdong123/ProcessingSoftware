@@ -7,11 +7,47 @@
 #include <QTimer>
 #include <QJsonDocument>
 #include "appdatabasebase.h"
+#include <QtMath>  // 需要包含此头文件
 static int originalFontSize = 50;
 static QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> g_allImageCache;
+
+void clearItemGroup(QGraphicsItemGroup *group) {
+    // 遍历所有子项（注意：必须从后向前删除，避免迭代器失效）
+    QList<QGraphicsItem*> children = group->childItems();
+    for (int i = children.size()  - 1; i >= 0; --i) {
+        QGraphicsItem *item = children[i];
+        group->removeFromGroup(item); // 从组中移除
+        delete item;                 // 删除对象（可选）
+    }
+}
+
+QGraphicsLineItem* createFixedWidthLine(
+    const QPointF& startPos,
+    const QPointF& endPos,
+    qreal lineWidth = 1.0,
+    const QColor& color = Qt::black
+) {
+    // 1. 计算线段的长度和方向
+    qreal dx = endPos.x() - startPos.x();
+    qreal dy = endPos.y() - startPos.y();
+    qreal length = std::sqrt(dx * dx + dy * dy);
+    qreal angle = std::atan2(dy, dx);
+
+    // 2. 创建线段（本地坐标系下水平绘制）
+    QGraphicsLineItem* line = new QGraphicsLineItem(0, 0, length, 0);
+    line->setPen(QPen(color, lineWidth));
+    //line->setFlag(QGraphicsItem::ItemIgnoresTransformations, true); // 关键：固定像素宽度
+
+    // 3. 设置线段位置和旋转
+    line->setPos(startPos);
+    line->setRotation(qRadiansToDegrees(angle)); // 旋转到实际方向
+    return line;
+}
+
 ImagePreviewWidget::ImagePreviewWidget(QWidget *parent)
     : QGraphicsView(parent)
 {
+    connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &ImagePreviewWidget::slt_requestFinishedSlot);
     // 场景设置
     QGraphicsScene *scene = new QGraphicsScene(this);
     setScene(scene);
@@ -31,11 +67,15 @@ ImagePreviewWidget::ImagePreviewWidget(QWidget *parent)
     m_pixmapItem->setZValue(-10);
     scene->addItem(m_pixmapItem);
 
+    m_coorItemsGroup.setZValue(-8);
+    scene->addItem(&m_coorItemsGroup);
+    m_rangeItemsGroup.setZValue(-8);
+    scene->addItem(&m_rangeItemsGroup);
+
     //点云图片，默认不显示
     m_pixmapPointsItem = new QGraphicsPixmapItem();
     m_pixmapPointsItem->setZValue(-9);
     scene->addItem(m_pixmapPointsItem);
-    m_pixmapPointsItem->setVisible(false);
 
     //监听事件
     parentWidget()->installEventFilter(this);
@@ -56,6 +96,44 @@ QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> ImagePreviewWidget::get
     return g_allImageCache;
 }
 
+bool ImagePreviewWidget::setDrawType(ImagePreviewWidget::DRAW_TYPE type)
+{
+    clearItemGroup(&m_rangeItemsGroup);
+    clearItemGroup(&m_coorItemsGroup);
+
+    if(type == ImagePreviewWidget::DRAW_TYPE::events)
+    {
+        //进入事件模式
+        emit sig_cancleCoordinatePickingSelected();
+        emit sig_cancleRangingSelected();
+        m_drawType = type;
+        return true;
+    }
+    else if(type == ImagePreviewWidget::DRAW_TYPE::coordinatePicking)
+    {
+        if(m_drawEnabled)
+        {
+            return false;
+        }
+        m_drawType = type;
+        emit sig_cancleRangingSelected();
+    }
+    else if(type == ImagePreviewWidget::DRAW_TYPE::ranging)
+    {
+        if(m_drawEnabled)
+        {
+            return false;
+        }
+        m_drawType = type;
+        emit sig_cancleCoordinatePickingSelected();
+    }
+    else
+    {
+        m_drawType = type;
+    }
+    return true;
+}
+
 void ImagePreviewWidget::showEvent(QShowEvent *event)
 {
     showTipLabel("预览模式");
@@ -74,9 +152,19 @@ void ImagePreviewWidget::showEvent(QShowEvent *event)
     }
     m_rectAnnotations.clear();
     m_currentAnnotation = nullptr;
+    m_pointPixmap = QPixmap();
+
+    // 重置视图
+    m_pixmapItem->setPixmap(QPixmap());
+    m_pixmapPointsItem->setPixmap(QPixmap());
 }
 
 void ImagePreviewWidget::closeEvent(QCloseEvent *event)
+{
+
+}
+
+void ImagePreviewWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
 {
 
 }
@@ -118,6 +206,10 @@ void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)
     if(pixmap.isNull())  {
         qWarning() << "Failed to load image:";
         m_pixmapItem->setPixmap(QPixmap());
+        m_pixmapPointsItem->setPixmap(QPixmap());
+        // 重置视图
+        fitToView();
+        scene()->setSceneRect(m_pixmapItem->boundingRect());
         return;
     }
 
@@ -143,11 +235,25 @@ void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)
 
     //初始化的时候不显示点云数据
     m_pixmapPointsItem->setPixmap(QPixmap());
+    m_pointPixmap = QPixmap();
 }
 
-void ImagePreviewWidget::loadPointImage(QPixmap pixmap)
+void ImagePreviewWidget::loadPointImage(QPixmap pixmap, QString key)
 {
-    m_pixmapItem->setPixmap(pixmap);
+    if(key != m_imageKey)
+        return;
+
+    //m_pixmapItem->setPixmap(pixmap);
+    m_pointPixmap = pixmap.copy();
+
+    if(m_isDisplayPointsPixmap)
+    {
+        m_pixmapPointsItem->setPixmap(m_pointPixmap);
+    }
+    else
+    {
+        m_pixmapPointsItem->setPixmap(QPixmap());
+    }
 }
 
 void ImagePreviewWidget::saveToCache()
@@ -296,9 +402,33 @@ void ImagePreviewWidget::readEvents2Cache(QJsonObject obj)
     }
 }
 
+void ImagePreviewWidget::clearEvents()
+{
+    // 清除已有标注
+    for(auto &annotation : m_rectAnnotations) {
+        scene()->removeItem(annotation.rect);
+        scene()->removeItem(annotation.text);
+        delete annotation.rect;
+        delete annotation.text;
+    }
+    m_rectAnnotations.clear();
+    m_currentAnnotation = nullptr;
+    clearItemGroup(&m_rangeItemsGroup);
+    clearItemGroup(&m_coorItemsGroup);
+}
+
 void ImagePreviewWidget::slt_setDisplayPointsItem(bool isDisplay)
 {
-    m_pixmapPointsItem->setVisible(isDisplay);
+    if(isDisplay)
+    {
+        m_pixmapPointsItem->setPixmap(m_pointPixmap);
+    }
+    else
+    {
+        m_pixmapPointsItem->setPixmap(QPixmap());
+    }
+    m_isDisplayPointsPixmap = isDisplay;
+    scene()->update(); // 手动触发场景重绘
 }
 
 void ImagePreviewWidget::slt_setPersonHandleEnd()
@@ -397,6 +527,9 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
         QString eventName = m_extendedKeyMapper.mapToString(event);
         if(!m_extendedKeyMapper.mapToString(event).isEmpty())
         {
+            //进入事件标记模式
+            setDrawType(ImagePreviewWidget::DRAW_TYPE::events);
+
             setDrawEnabled(true);
             showTipLabel("标绘模式");
             setLabelText(eventName);
@@ -444,6 +577,9 @@ void ImagePreviewWidget::zoomAtPosition(qreal factor, const QPointF &fixedSceneP
 
 void ImagePreviewWidget::fitToView()
 {
+    clearItemGroup(&m_rangeItemsGroup);
+    clearItemGroup(&m_coorItemsGroup);
+
     if(!m_pixmapItem || m_pixmapItem->pixmap().isNull())
         return;
 
@@ -486,6 +622,90 @@ void ImagePreviewWidget::mousePressEvent(QMouseEvent *event)
         // 检查点是否在图片范围内
         bool inImage = isPointInImage(scenePos);
 
+        //坐标拾取模式
+        if(!m_drawEnabled && m_drawType == DRAW_TYPE::coordinatePicking)
+        {
+            QPointF currentPos = mapToScene(event->pos());
+            // 确保坐标在图片范围内
+            if(!isPointInImage(currentPos)) {
+                // 如果超出图片范围，则限制在图片边界
+                QRectF imageRect = m_pixmapItem->boundingRect();
+                currentPos.setX(qBound(imageRect.left(),  currentPos.x(), imageRect.right()));
+                currentPos.setY(qBound(imageRect.top(),  currentPos.y(), imageRect.bottom()));
+            }
+
+            QGraphicsEllipseItem *point = new QGraphicsEllipseItem();
+            point->setRect(0, 0, 5, 5);  // 5x5像素的圆点
+            point->setPos(scenePos.x(),scenePos.y());
+            point->setBrush(Qt::red);     // 填充颜色
+            point->setPen(Qt::NoPen);     // 无边框
+            point->setFlag(QGraphicsItem::ItemIgnoresTransformations, true); // 关键：忽略缩放
+            m_coorItemsGroup.addToGroup(point);      // 添加到组
+
+            // 2. 创建文字（20像素固定大小）
+            //获取像素点对应的经纬度
+            QPointF lonlat = getLonLatFromServer(currentPos);
+            QString drawText = QString("%1,%2").arg(QString::number(lonlat.x(),'f',7)).arg(QString::number(lonlat.y(),'f',7));
+            if(lonlat.x() == 0 || lonlat.y() == 0)
+            {
+                drawText = "unknown";
+            }
+            ScalableTextItem *text = new ScalableTextItem(drawText);
+            text->setDefaultTextColor(Qt::red);
+            QFont font;
+            font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
+            text->setFont(font);
+            text->setPos(QPointF(scenePos.x()+15,scenePos.y()-30));        // 文字相对于点的偏移位置
+            m_coorItemsGroup.addToGroup(text);      // 添加到组
+
+            return;
+        }
+        //测距
+        else if(!m_drawEnabled && m_drawType == DRAW_TYPE::ranging)
+        {
+            QGraphicsEllipseItem *point = new QGraphicsEllipseItem();
+            point->setRect(0, 0, 5, 5);  // 5x5像素的圆点
+            point->setPos(scenePos.x(),scenePos.y());
+            point->setBrush(Qt::red);     // 填充颜色
+            point->setPen(Qt::NoPen);     // 无边框
+            point->setFlag(QGraphicsItem::ItemIgnoresTransformations, true); // 关键：忽略缩放
+            m_rangeItemsGroup.addToGroup(point);      // 添加到组
+
+            if(m_dragStartPos.x() > 0 && m_dragStartPos.y() > 0)
+            {
+                // 定义两个点的坐标
+                QPointF p1 = m_dragStartPos;
+                QPointF p2 = scenePos;
+
+                // 创建固定宽度的线段（2像素宽）
+                QGraphicsLineItem* item = createFixedWidthLine(p1, p2, 5.0, Qt::red);
+                m_rangeItemsGroup.addToGroup(item);      // 添加到组
+
+                QString showText = getScaleFromServer(p1,p2);
+                ScalableTextItem *text = new ScalableTextItem(showText);
+                text->setDefaultTextColor(Qt::red);
+                QFont font;
+                font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
+                text->setFont(font);
+                text->setPos(QPointF(scenePos.x()+15,scenePos.y()-30));        // 文字相对于点的偏移位置
+                m_rangeItemsGroup.addToGroup(text);      // 添加到组
+                m_dragStartPos = QPointF(0,0);
+
+                QList<QGraphicsItem*> children = m_rangeItemsGroup.childItems();
+                    for (int i = children.size()  - 1; i >= 0; --i) { // 从后向前删除
+                        QGraphicsItem *item = children[i];
+                        if (item->type() == QGraphicsEllipseItem::Type) {
+                            m_rangeItemsGroup.removeFromGroup(item);
+                            delete item;
+                        }
+                    }
+            }
+            else
+            {
+                 m_dragStartPos = scenePos;
+            }
+        }
+
         if(m_drawEnabled && inImage) {
             // 绘制模式：创建新矩形
             m_dragStartPos = scenePos;
@@ -517,6 +737,12 @@ void ImagePreviewWidget::mousePressEvent(QMouseEvent *event)
 
 void ImagePreviewWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    //坐标拾取模式
+    if(!m_drawEnabled && m_drawType == DRAW_TYPE::coordinatePicking)
+    {
+        return;
+    }
+
     if(m_panning && !m_drawEnabled) {
         // 处理平移
         QPoint delta = event->pos() - m_lastPanPoint;
@@ -558,6 +784,13 @@ void ImagePreviewWidget::mouseReleaseEvent(QMouseEvent *event)
         if(m_panning) {
             m_panning = false;
             setCursor(Qt::ArrowCursor);
+        }
+
+
+        //坐标拾取模式
+        if(!m_drawEnabled && m_drawType == DRAW_TYPE::coordinatePicking)
+        {
+            return;
         }
 
         if(m_isDragging) {
@@ -764,3 +997,111 @@ QList<QRectF> ImagePreviewWidget::getAnnotations() const
     }
     return annotations;
 }
+
+QPointF ImagePreviewWidget::getLonLatFromServer(QPointF pos)
+{
+    QPointF returnResult(0,0);
+    if(m_imageKey.split("-").size() == 2)
+    {
+        //从业务数据库中获取所有的事件
+        QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+        this->m_restFulApi.getPostData().clear();
+        QJsonObject post_data;
+        QJsonDocument document;
+        QByteArray post_param;
+        post_data.insert("bag_id",m_imageKey.split("-")[0]);
+        post_data.insert("fileName",m_imageKey.split("-")[1] + ".jpg");
+        QJsonObject temp;
+        temp.insert("x",int(pos.x()));
+        temp.insert("y",int(pos.y()));
+        QJsonArray pixel_list;
+        pixel_list.push_back(temp);
+        post_data.insert("pixel_list",pixel_list);
+        document.setObject(post_data);
+        post_param = document.toJson(QJsonDocument::Compact);
+        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_EVENT_CALC_LATLON_GET,
+                              VisitType::POST,ReplyType::EVENT_CALC_LATLON_GET,"application/json",post_param,true);
+
+        QEventLoop loop;
+        QTimer timer;
+        timer.setInterval(3000);  // 设置超时时间 3 秒
+        timer.setSingleShot(true);  // 单次触发
+        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        timer.start();
+        loop.exec();
+
+        QJsonObject returnObj;
+        QStringList requestUrlList;
+        if(reply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(reply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,reply))
+            {
+               QJsonArray arrayResult = obj.value("data").toArray();
+               if(arrayResult.size() > 0)
+               {
+                    returnResult = QPointF(arrayResult[0].toObject().value("lon").toDouble(),arrayResult[0].toObject().value("lat").toDouble());
+               }
+            }
+        }
+    }
+
+    return returnResult;
+}
+
+QString ImagePreviewWidget::getScaleFromServer(QPointF pos1,QPointF pos2)
+{
+    QString returnResult = "unknown";
+    if(m_imageKey.split("-").size() == 2)
+    {
+        //从业务数据库中获取所有的事件
+        QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+        this->m_restFulApi.getPostData().clear();
+        QJsonObject post_data;
+        QJsonDocument document;
+        QByteArray post_param;
+        post_data.insert("bag_id",m_imageKey.split("-")[0]);
+        post_data.insert("fileName",m_imageKey.split("-")[1] + ".jpg");
+        QJsonObject temp;
+        temp.insert("x1",int(pos1.x()));
+        temp.insert("y1",int(pos1.y()));
+        temp.insert("x2",int(pos2.x()));
+        temp.insert("y2",int(pos2.y()));
+        QJsonArray pixel_list;
+        pixel_list.push_back(temp);
+        post_data.insert("pixel_list",pixel_list);
+        document.setObject(post_data);
+        post_param = document.toJson(QJsonDocument::Compact);
+        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_EVENT_CALC_SCALE_GET,
+                              VisitType::POST,ReplyType::EVENT_CALC_SCALE_GET,"application/json",post_param,true);
+
+        QEventLoop loop;
+        QTimer timer;
+        timer.setInterval(3000);  // 设置超时时间 3 秒
+        timer.setSingleShot(true);  // 单次触发
+        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        timer.start();
+        loop.exec();
+
+        QJsonObject returnObj;
+        QStringList requestUrlList;
+        if(reply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(reply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,reply))
+            {
+               QJsonArray arrayResult = obj.value("data").toArray();
+               if(arrayResult.size() > 0 && arrayResult[0].toObject().value("scale").toDouble())
+               {
+                    returnResult = QString::number(arrayResult[0].toObject().value("scale").toDouble(),'f',1);
+                    returnResult = returnResult + "米";
+               }
+            }
+        }
+    }
+
+    return returnResult;
+}
+

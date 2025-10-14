@@ -15,10 +15,11 @@
 #include <QLabel>
 #include <QJsonObject>
 #include <QJsonArray>
-
+#include "restfulapi.h"
 #include <QHash>
 #include <QKeySequence>
 #include <QString>
+#include <QGraphicsItemGroup>
 
 class ExtendedKeyMapper {
 private:
@@ -154,6 +155,16 @@ class ImagePreviewWidget : public QGraphicsView
 {
     Q_OBJECT
 public:
+    //绘制类型
+    enum DRAW_TYPE
+    {
+        unkonwn = 0,        //未知
+        coordinatePicking,  //坐标拾取
+        ranging,            //测距
+        events,             //绘制事件
+    };
+
+
     explicit ImagePreviewWidget(QWidget *parent = nullptr);
     void loadImage(const QString& path);
 
@@ -169,7 +180,7 @@ public:
     QList<QRectF> getAnnotations() const;
 
     void loadImage(QPixmap pixmap, QString key = "");
-    void loadPointImage(QPixmap pixmap);
+    void loadPointImage(QPixmap pixmap, QString key);
 
 
     // 标注数据结构优化（解决QMap排序问题）
@@ -197,7 +208,13 @@ public:
     void displayRequestEvent(QJsonObject obj);
     void readEvents2Cache(QJsonObject obj);
 
+    //清屏
+    void clearEvents();
+
     QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> getImageCache();
+
+    //设置绘制模式
+    bool setDrawType(DRAW_TYPE type);
 
 public slots:
     //控制是否显示点云数据
@@ -209,6 +226,8 @@ public slots:
 
 signals:
     void sig_personHandleEnd(QString id, bool isHandle);
+    void sig_cancleCoordinatePickingSelected();
+    void sig_cancleRangingSelected();
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -221,6 +240,9 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event);
     void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent* event);
+
+private slots:
+    void slt_requestFinishedSlot(QNetworkReply *networkReply);
 
 private:
     // 坐标转换系统
@@ -265,6 +287,19 @@ private:
     QString m_imageKey;
 
     ExtendedKeyMapper m_extendedKeyMapper;//键值对映射
+    QPixmap m_pointPixmap;//点云图片
+    bool m_isDisplayPointsPixmap = false;
+    DRAW_TYPE m_drawType = DRAW_TYPE::unkonwn;
+
+    //测距
+    QGraphicsItemGroup m_rangeItemsGroup;
+    //坐标拾取
+    QGraphicsItemGroup m_coorItemsGroup;
+    RestFulApi m_restFulApi;
+
+private:
+    QPointF getLonLatFromServer(QPointF pos);
+    QString getScaleFromServer(QPointF pos1, QPointF pos2);
 };
 
 #endif // IMAGEPREVIEWWIDGET_H
