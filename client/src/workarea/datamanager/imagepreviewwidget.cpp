@@ -10,6 +10,7 @@
 #include <QtMath>  // 需要包含此头文件
 static int originalFontSize = 50;
 static QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> g_allImageCache;
+int resetY = 80;
 
 void clearItemGroup(QGraphicsItemGroup *group) {
     // 遍历所有子项（注意：必须从后向前删除，避免迭代器失效）
@@ -313,7 +314,7 @@ void ImagePreviewWidget::drawFromCache()
             // 创建文本项
             annotation.text  = new ScalableTextItem(text);
             annotation.text->setDefaultTextColor(color);
-            annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
+            annotation.text->setPos(QPointF(rect.x(),rect.y()-resetY));
             annotation.text->setZValue(1);  // 确保文本在矩形上方
             QFont font;
             font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
@@ -353,7 +354,7 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         // 创建文本项
         annotation.text  = new ScalableTextItem(text);
         annotation.text->setDefaultTextColor(color);
-        annotation.text->setPos(QPointF(rect.x(),rect.y()-20));
+        annotation.text->setPos(QPointF(rect.x(),rect.y()-resetY));
         annotation.text->setZValue(1);  // 确保文本在矩形上方
         QFont font;
         font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
@@ -804,7 +805,7 @@ void ImagePreviewWidget::mouseReleaseEvent(QMouseEvent *event)
                 m_tempRectItem = nullptr;
             } else if(m_currentAnnotation) {
                 //将矩形框的文字统一显示到左上角
-                m_currentAnnotation->text->setPos(QPointF(m_currentAnnotation->rect->rect().x(),m_currentAnnotation->rect->rect().y()));
+                m_currentAnnotation->text->setPos(QPointF(m_currentAnnotation->rect->rect().x(),m_currentAnnotation->rect->rect().y()-resetY));
 
                 // 完成当前矩形的绘制
                 m_currentAnnotation = nullptr;
@@ -874,7 +875,7 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
     // 创建文本项
     annotation.text  = new ScalableTextItem(m_labelText);
     annotation.text->setDefaultTextColor(color);
-    annotation.text->setPos(QPointF(startPos.x(),startPos.y()-20));
+    annotation.text->setPos(QPointF(startPos.x(),startPos.y()-resetY));
     annotation.text->setZValue(1);  // 确保文本在矩形上方
     QFont font;
     font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）

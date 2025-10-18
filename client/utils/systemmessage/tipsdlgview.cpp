@@ -3,6 +3,7 @@
 #include <thread>
 #include <QStyle>
 #include <QDesktopWidget>
+#include <QScreen>
 
 TipsDlgView::TipsDlgView(const QString &msg, QWidget *parent) :
     QWidget(parent),
@@ -50,6 +51,12 @@ QTimer *TipsDlgView::getTimer()
 void TipsDlgView::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
+
+    QTimer::singleShot(10, this, [this]() {
+        QScreen *activeScreen = QGuiApplication::screenAt(QCursor::pos());
+        QRect screenGeometry = activeScreen->geometry();
+        this->move(screenGeometry.center()  - this->rect().center());
+    });
 }
 
 void TipsDlgView::setWindowGeometry(QWidget *widget)

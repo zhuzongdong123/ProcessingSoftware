@@ -5,6 +5,7 @@ FORMS += \
     $$PWD/mainwindow/mainwindowwidget.ui \
     $$PWD/menubar/menubar.ui \
     $$PWD/titlebar/titlebar.ui \
+    $$PWD/workarea/datamanager/exportbagpage.ui \
     $$PWD/workarea/datamanager/progressbar.ui \
     $$PWD/workarea/usermanager/adduserpage.ui \
     $$PWD/workarea/usermanager/usercard.ui \
@@ -21,6 +22,7 @@ HEADERS += \
     $$PWD/mainwindow/mainwindowwidget.h \
     $$PWD/menubar/menubar.h \
     $$PWD/titlebar/titlebar.h \
+    $$PWD/workarea/datamanager/exportbagpage.h \
     $$PWD/workarea/datamanager/imagepreviewwidget.h \
     $$PWD/workarea/datamanager/progressbar.h \
     $$PWD/workarea/usermanager/adduserpage.h \
@@ -38,6 +40,7 @@ SOURCES += \
     $$PWD/mainwindow/mainwindowwidget.cpp \
     $$PWD/menubar/menubar.cpp \
     $$PWD/titlebar/titlebar.cpp \
+    $$PWD/workarea/datamanager/exportbagpage.cpp \
     $$PWD/workarea/datamanager/imagepreviewwidget.cpp \
     $$PWD/workarea/datamanager/progressbar.cpp \
     $$PWD/workarea/usermanager/adduserpage.cpp \

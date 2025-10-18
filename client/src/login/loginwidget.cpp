@@ -8,6 +8,7 @@
 #include <QDesktopWidget>
 #include "appdatabasebase.h"
 #include "appconfigbase.h"
+#include "tipsdlgviewForSure.h"
  
 LoginWidget::LoginWidget(QWidget *parent) : 
     QWidget(parent), 
@@ -217,13 +218,7 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
                 AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
                 AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
-
-                //测试代码，临时关闭
-                //AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
-
-                //测试代码
-                AppDatabaseBase::getInstance()->m_serverIp = "111.34.71.210";
-
+                AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
                 AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
                 AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
 
@@ -263,6 +258,12 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
 
 void LoginWidget::slt_logout()
 {
+    tipsdlgviewForSure box("是否退出登录？",nullptr);
+    if(box.windowExec() == 1)
+    {
+        return;
+    }
+
     if(nullptr != m_mainWindow)
     {
         m_mainWindow->deleteLater();

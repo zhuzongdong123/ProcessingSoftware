@@ -1,4 +1,4 @@
-#ifndef DBPOOL_H
+﻿#ifndef DBPOOL_H
 #define DBPOOL_H
 
 #include <QObject>
@@ -28,10 +28,10 @@ private:
 
     QString m_hostName = "127.0.0.1";
     int m_port = 3306;
-    QString m_databaseName = "robot_controller";
+    QString m_databaseName = "ProcessingSoftware.db";
     QString m_username = "root";
     QString m_password = "root";
-    QString m_databaseType = "QMYSQL";
+    QString m_databaseType = "QSQLITE";
 
     QTimer* m_timerClean;
 signals:

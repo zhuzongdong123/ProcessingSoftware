@@ -2,6 +2,10 @@
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlDriver>
+#include <QUuid>
+#include <QSqlQuery>
+#include <QApplication>
+
 QDateTime DbPool::global_CurrentTime()
 {
     static QMutex mutex;
@@ -26,32 +30,21 @@ QSqlDatabase DbPool::getDbbyId(QString dbId)
 {
     QMutexLocker muLock(&m_muConnectDbId);
 
+    dbId = QUuid::createUuid().toString().remove("-").remove("{").remove("}");;
+
     qDebug() << "Available drivers:";
     qDebug() << QSqlDatabase::drivers(); // 打印所有可用驱动
-
-    if(dbId.isEmpty())
-    {
-        qDebug() << "AppGlobal::getDbbyId threadId is empty";
-        return QSqlDatabase();
-    }
-    if ( QSqlDatabase::contains( dbId ) )
-    {
-        qDebug() << "AppGlobal::getDbbyId:dbid is exist: " << dbId;
-        m_mapConnectName.insert(dbId,global_CurrentTime());
-        return  QSqlDatabase::database( dbId );
-    }
-    else
     {
         qDebug() << "AppGlobal::getDbbyId new db connect: " << dbId;
         QSqlDatabase db = QSqlDatabase::addDatabase( m_databaseType, dbId );
         db.setHostName(m_hostName);
-        db.setDatabaseName(m_databaseName);
+        db.setDatabaseName(QApplication::applicationDirPath() + "/" + m_databaseName);
         db.setPort(m_port);
         db.setUserName(m_username);
         db.setPassword(m_password);
-        db.setConnectOptions("MYSQL_OPT_CONNECT_TIMEOUT = 3");
+        db.setConnectOptions("QSQLITE_ENABLE_SHARED_CACHE=1;QSQLITE_BUSY_TIMEOUT=5000");
         // 关键：添加SSL禁用选项
-       // db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
 
         if(db.open())
         {
@@ -66,7 +59,6 @@ QSqlDatabase DbPool::getDbbyId(QString dbId)
             qDebug() << "Driver error: " << error.driverText();
             qDebug() << "Database error: " << error.databaseText();
         }
-        m_mapConnectName.insert(dbId,global_CurrentTime());
         return  db;
     }
      return QSqlDatabase();

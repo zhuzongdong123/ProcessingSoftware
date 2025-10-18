@@ -65,6 +65,8 @@
 #define API_EVENT_CALC_LATLON_GET "/api/v1/subdata/calc_latlon"
 //获取像素点对应的尺寸
 #define API_EVENT_CALC_SCALE_GET "/api/v1/subdata/calc_scale"
+//获取数据包的方向
+#define API_PARAMETER_GET  "/api/v1/subdata/%1/parameter"
 
 /*
  *提供restfull便携接口类外使用
@@ -85,6 +87,7 @@ enum ReplyType
     BAG_FILE_DETIAL,
     IMAGES_LIST_GET,
     IMAGES_LIST_GET_All,
+    IMAGES_LIST_GET_All1,
     IMAGES_LIST_GET_All_loop,
     IMAGE_DETIAL_GET,
     CURRENT_IMAGE_DETIAL_GET,
@@ -100,6 +103,7 @@ enum ReplyType
     ANNOTATION_QUERY_EVENTS,
     EVENT_CALC_LATLON_GET,
     EVENT_CALC_SCALE_GET,
+    PARAMETER_GET,
 };
 
 enum class VisitType

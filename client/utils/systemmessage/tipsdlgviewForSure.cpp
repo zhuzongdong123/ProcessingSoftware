@@ -4,6 +4,7 @@
 #include <QStyle>
 #include <QDesktopWidget>
 #include "QEventLoop"
+#include <QScreen>
 
 QWidget* getMainWindow()
 {
@@ -76,6 +77,12 @@ void tipsdlgviewForSure::showEvent(QShowEvent *event)
 
     raise();
     show();
+
+    QTimer::singleShot(10, this, [this]() {
+        QScreen *activeScreen = QGuiApplication::screenAt(QCursor::pos());
+        QRect screenGeometry = activeScreen->geometry();
+        this->move(screenGeometry.center()  - this->rect().center());
+    });
 }
 
 void tipsdlgviewForSure::setWindowGeometry(QWidget *widget)

@@ -21,6 +21,7 @@ class DAO
 {
 public:
     DAO();
+    ~DAO();
 public:
     QString toHump(QString value);
     /*

@@ -1,4 +1,4 @@
-#include "appglobal.h"
+﻿#include "appglobal.h"
 #include "dao.h"
 #include <QUuid>
 AppGlobal::AppGlobal(QObject *parent) : QObject(parent)
@@ -32,16 +32,16 @@ void AppGlobal::setOpenStatus(bool status)
 
 void AppGlobal::initDbStatus()
 {
-    DAO dao;
-    m_dbId = QUuid::createUuid().toString().remove("-").remove("{").remove("}");
-    m_bdbOpen = dao.openConnection(m_dbId);
-    m_timerDbStatus->start(3000);
+//    DAO dao;
+//    m_dbId = QUuid::createUuid().toString().remove("-").remove("{").remove("}");
+//    m_bdbOpen = dao.openConnection(m_dbId);
+//    m_timerDbStatus->start(3000);
 }
 
 void AppGlobal::slt_timerDbStatus()
 {
-    DAO dao;
-    bool status = dao.openConnection(m_dbId);
-    setOpenStatus(status);
+//    DAO dao;
+//    bool status = dao.openConnection(m_dbId);
+//    setOpenStatus(status);
 }
 

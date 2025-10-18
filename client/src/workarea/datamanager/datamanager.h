@@ -67,6 +67,7 @@ private slots:
     void slt_requestFinishedSlot(QNetworkReply *networkReply);
     void slt_operateBtnClicked();
     void slt_refreshTableData();
+    void slt_exportTableData();
 
 private:
     Ui::DataManager *ui;

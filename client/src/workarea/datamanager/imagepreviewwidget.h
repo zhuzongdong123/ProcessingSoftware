@@ -85,8 +85,7 @@ public:
         adden2CMapping("lane_gap","标线缺损");
         adden2CMapping("expansion_gap","伸缩缝");
         adden2CMapping("signboard","标志牌");
-        adden2CMapping("hundred_pile","坑槽");
-        adden2CMapping("pit","百米桩");
+        adden2CMapping("hundred_pile","百米桩");
         adden2CMapping("km_pile","公里桩");
         adden2CMapping("yellow_circle_outline","轮廓标");
         adden2CMapping("unglare_plate","防眩板");

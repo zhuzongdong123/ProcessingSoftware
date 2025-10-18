@@ -4,6 +4,31 @@
 #include <QJsonDocument>
 #include "appglobal.h"
 #include <QThread>
+#include <QDateTime>
+
+bool checkTrialPeriod() {
+    QSettings settings("sdgs", "ProcessingSoftWareServer");
+
+    // 检查是否是首次运行
+    if (!settings.contains("firstRunDate"))  {
+        settings.setValue("firstRunDate",  QDateTime::currentDateTime().toString(Qt::ISODate));
+        return true;
+    }
+
+    // 获取首次运行日期
+    QDateTime firstRunDate = QDateTime::fromString(settings.value("firstRunDate").toString(),  Qt::ISODate);
+    QDateTime currentDate = QDateTime::currentDateTime();
+
+    // 计算试用期剩余天数
+    qint64 daysElapsed = firstRunDate.daysTo(currentDate);
+    qint64 trialDays = 30;
+    if (daysElapsed >= trialDays) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 hrHttpserver::hrHttpserver(QObject *parent)
     :HttpRequestHandler(parent)
 {
@@ -21,6 +46,17 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
     QList<QByteArray> urlList = path.split('/');
     int iUrlSize = urlList.size();
 
+    if(!checkTrialPeriod())
+    {
+        QJsonObject retObj;
+        retObj.insert("message","授权到期");
+        retObj.insert("code",500);
+        QJsonObject dataObj;
+        QJsonDocument doc;
+        doc.setObject(retObj);
+        response.write(doc.toJson());
+        return ;
+    }
 
     //////////////////////////////////////
     if(path.contains("/api/v1/system/info/percent"))
@@ -42,8 +78,6 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
     ////////////////////////////////////////////
 
 
-
-
     if(iUrlSize < 5)
     {
         QJsonObject retObj;
@@ -55,6 +89,8 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
         response.write(doc.toJson());
         return ;
     }
+
+
     if(urlList.at(1) != "controller")
     {
         QJsonObject retObj;
@@ -65,28 +101,6 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
         doc.setObject(retObj);
         response.write(doc.toJson());
         return ;
-    }
-    if("login" == urlList.at(2) && "dbstatus" == urlList.at(3) && "status" == urlList.at(4)) //数据库联通性
-    {
-        QJsonObject retObj;
-        bool dbStatus = AppGlobal::Instance().dbOpenStatus();
-        if(dbStatus)
-        {
-            retObj.insert("success",true);
-            retObj.insert("message","success");
-            retObj.insert("code",200);
-        }
-        else
-        {
-            retObj.insert("success",false);
-            retObj.insert("message","数据库连接失败");
-            retObj.insert("code",502);
-        }
-
-
-        QJsonDocument doc;
-        doc.setObject(retObj);
-        response.write(doc.toJson());
     }
     else if("identity" == urlList.at(2) && "authentication" == urlList.at(3)) //身份验证
     {

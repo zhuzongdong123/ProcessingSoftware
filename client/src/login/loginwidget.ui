@@ -197,7 +197,7 @@ QWidget{font-size:18px}
                </size>
               </property>
               <property name="text">
-               <string>admin</string>
+               <string/>
               </property>
               <property name="maxLength">
                <number>32</number>
@@ -216,7 +216,7 @@ QWidget{font-size:18px}
                </size>
               </property>
               <property name="text">
-               <string>admin123</string>
+               <string/>
               </property>
               <property name="maxLength">
                <number>32</number>

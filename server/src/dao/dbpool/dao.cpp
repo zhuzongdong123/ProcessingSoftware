@@ -4,7 +4,16 @@
 #include <QRegularExpression>
 DAO::DAO()
 {
+    qDebug() << "start DAO";
+}
 
+DAO::~DAO()
+{
+    if(m_db.isOpen())
+    {
+        QSqlDatabase::removeDatabase(m_db.connectionName());
+    }
+    qDebug() << "delete DAO";
 }
 
 QString DAO::toHump(QString value)
@@ -485,6 +494,10 @@ QJsonArray DAO::queryDataForBase(QString sTableName, QList<QString> keyList, QMa
             }
             ret.push_back(obj);
         }
+    }
+    else
+    {
+        m_lastError = query.lastError().text();
     }
 
     return ret;

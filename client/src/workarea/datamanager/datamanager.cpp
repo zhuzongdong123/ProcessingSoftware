@@ -6,6 +6,7 @@
 #include "appeventbase.h"
 #include <QDir>
 #include "batchdownloader.h"
+#include "exportbagpage.h"
 
 QString value2AnnotationName(QString value)
 {
@@ -36,6 +37,7 @@ DataManager::DataManager(QWidget *parent) :
     initTable();
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &DataManager::slt_requestFinishedSlot);
     connect(ui->refreshBtn, &QPushButton::clicked, this, &DataManager::slt_refreshTableData);
+    connect(ui->exportBtn, &QPushButton::clicked, this, &DataManager::slt_exportTableData);
 
     QTimer* timer = new QTimer(this);
     connect(timer,&QTimer::timeout,this,[=](){
@@ -362,7 +364,7 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 QJsonArray array = objData.value("images").toArray();
 
                 // 1. 准备下载任务 (URL + 保存路径)
-                QList<QPair<QUrl, QString>> tasks;
+                QList<ExportInfo> tasks;
                 QString bagId = networkReply->property("bagId").toString();
 
                 for(auto imageInfo : array)
@@ -387,10 +389,15 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
 
                     //获取bag文件的详情
                     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
-                    tasks.append({
-                        QUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath)),
-                        QString("%1/%2").arg(dirPath).arg(filePath) // 分目录存储
-                    });
+
+                    ExportInfo info;
+                    info.url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
+                    info.savePath = QString("%1/%2").arg(dirPath).arg(filePath);
+//                    tasks.append({
+//                        QUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath)),
+//                        QString("%1/%2").arg(dirPath).arg(filePath) // 分目录存储
+//                    });
+                    tasks.append(info);
                 }
 
                 // 2. 创建下载器实例
@@ -457,6 +464,62 @@ void DataManager::slt_refreshTableData()
     }
 }
 
+void DataManager::slt_exportTableData()
+{
+    //获取选择的数据
+    QSet<int> selectedRows;
+    QSet<QString> selectedIds;
+    for (QTableWidgetItem *item : ui->tableWidget->selectedItems()) {
+        selectedRows.insert(item->row());
+        QString bagId = ui->tableWidget->item(item->row(), COLNAME::UUID)->text();
+        selectedIds.insert(bagId);
+    }
+
+    if (selectedRows.isEmpty())  {
+        TipsDlgView* dlg = new TipsDlgView("请先选择需要导出的数据", nullptr);
+        dlg->startTimer();
+        dlg->show();
+        return;
+    }
+
+    //第一个组的名称
+    int firstRow = *selectedRows.begin();
+    QString firstGroupName = ui->tableWidget->item(firstRow, COLNAME::fileGroup)->text();
+    for (int row : selectedRows) {
+        QString groupName = ui->tableWidget->item(row, COLNAME::fileGroup)->text();
+        if (groupName != firstGroupName) {
+            TipsDlgView* dlg = new TipsDlgView("请选择同组的数据", nullptr);
+            dlg->startTimer();
+            dlg->show();
+            return;
+        }
+    }
+
+    int size = 0;
+    int nCount = ui->tableWidget->rowCount();
+    for (int n = 0; n < nCount;n++)
+    {
+        QString groupName = ui->tableWidget->item(n, COLNAME::fileGroup)->text();
+        if(firstGroupName == groupName)
+        {
+            size++;
+        }
+    }
+
+    if(selectedRows.size() != size)
+    {
+        tipsdlgviewForSure box("同一组数据存在漏选情况，是否继续？",nullptr);
+        if(box.windowExec() == 1)
+        {
+            return;
+        }
+    }
+
+    //开始跳转导出页面
+    ExportBagPage::getInstance()->setBagIds(selectedIds);
+    ExportBagPage::getInstance()->show();
+}
+
 void DataManager::getBagCounts()
 {
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
@@ -466,6 +529,8 @@ void DataManager::getBagCounts()
 
 void DataManager::searchBagsList()
 {
+    QApplication::processEvents();
+
     m_allCount = 0;//全部数量
     m_allHandleCount = 0;//处理数量
     m_allunHandleCount = 0;//未处理数量
@@ -481,7 +546,9 @@ void DataManager::searchBagsList()
     QVector<DataManager::RecordInfo> allBasMap;
     for(auto folderPath : folderPathList)
     {
+        QApplication::processEvents();
         findAllBagByFolder(folderPath,allBasMap);
+        QApplication::processEvents();
     }
 
     //显示到表格
@@ -897,12 +964,6 @@ void DataManager::findAllBagByFolder(QString folderPath, QVector<DataManager::Re
         auto obj=QJsonDocument::fromJson(reply->readAll()).object();
         if(m_restFulApi.replyResultCheck(obj,reply))
         {
-            //如果是文件的话插入
-            //allBasMap.insert();
-
-            //如果是文件夹的话，递归调用
-            //findAllBagByFolder();
-
             QJsonArray array = obj.value("data").toObject().value("items").toArray();
             for(auto itemObj : array)
             {
@@ -935,6 +996,10 @@ void DataManager::findAllBagByFolder(QString folderPath, QVector<DataManager::Re
             }
         }
     }
+    else
+    {
+        emit AppEventBase::getInstance()->sig_sendServerStatus(false);
+    }
     reply->deleteLater();
 }
 
@@ -962,58 +1027,6 @@ void DataManager::displayTable()
         ui->tableWidget->setItem(rowIndex,COLNAME::operation,new QTableWidgetItem(""));
         ui->tableWidget->setItem(rowIndex,COLNAME::UUID,new QTableWidgetItem(recordInfo.ID));
         ui->tableWidget->setItem(rowIndex,COLNAME::downStatus,new QTableWidgetItem(space + recordInfo.downStatus));
-
-//        QWidget *widget2 = new QWidget(ui->tableWidget);
-//        widget2->setStyleSheet("QWidget{background:transparent;} QPushButton{color: #33B8FF}");
-//        QHBoxLayout *layout2 = new QHBoxLayout(widget2);
-//        if(recordInfo.handleStatus != "已解析")
-//        {
-//            QPushButton* button = new QPushButton(widget2);
-//            connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
-//            button->setFocusPolicy(Qt::NoFocus);
-//            button->setCursor(Qt::PointingHandCursor);
-//            button->setFixedSize(40,30);
-//            button->setText("解析");
-//            button->setProperty("uuid",recordInfo.ID);
-//            layout2->addWidget(button);
-//        }
-//        if(recordInfo.downStatus == "未下载" && recordInfo.handleStatus == "已解析")
-//        {
-//            QPushButton* button = new QPushButton(widget2);
-//            connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
-//            button->setFocusPolicy(Qt::NoFocus);
-//            button->setCursor(Qt::PointingHandCursor);
-//            button->setFixedSize(40,30);
-//            button->setText("下载");
-//            button->setProperty("uuid",recordInfo.ID);
-//            layout2->addWidget(button);
-//        }
-//        {
-//            QPushButton* button = new QPushButton(widget2);
-//            connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
-//            button->setFocusPolicy(Qt::NoFocus);
-//            button->setCursor(Qt::PointingHandCursor);
-//            button->setFixedSize(40,30);
-//            button->setText("标注");
-//            button->setProperty("uuid",recordInfo.ID);
-//            layout2->addWidget(button);
-//        }
-//        {
-//            QPushButton* button = new QPushButton(widget2);
-//            connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
-//            button->setFocusPolicy(Qt::NoFocus);
-//            button->setCursor(Qt::PointingHandCursor);
-//            button->setFixedSize(40,30);
-//            button->setText("删除");
-//            button->setProperty("uuid",recordInfo.ID);
-//            layout2->addWidget(button);
-//        }
-
-
-//        layout2->setContentsMargins(0,0,0,0);
-//        layout2->setAlignment(layout2,Qt::AlignLeft | Qt::AlignVCenter);
-//        widget2->setLayout(layout2);
-//        ui->tableWidget->setCellWidget(rowIndex,COLNAME::operation,widget2);
     }
 
     resetTableColor();
