@@ -43,7 +43,15 @@ public:
         if(!m_imageId.isEmpty() && !m_bagId.isEmpty())
         {
             QJsonArray returnArray =  handleEvents();
-            emit sig_eventHandled(returnArray);
+            //图片无事件不处理
+            if(returnArray.size() == 0)
+            {
+                return;
+            }
+            else
+            {
+                emit sig_eventHandled(returnArray);
+            }
         }
 
         //下载图片
