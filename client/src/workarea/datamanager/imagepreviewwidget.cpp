@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include "appdatabasebase.h"
 #include <QtMath>  // 需要包含此头文件
+#include <QFileInfo>
 static int originalFontSize = 50;
 static QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> g_allImageCache;
 int resetY = 80;
@@ -237,6 +238,24 @@ void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)
     //初始化的时候不显示点云数据
     m_pixmapPointsItem->setPixmap(QPixmap());
     m_pointPixmap = QPixmap();
+
+    //判断是否加载点云数据
+    if(m_imageKey.split("-").size() == 2)
+    {
+        QString bagId = m_imageKey.split("-")[0];
+        QString imageId = m_imageKey.split("-")[1];
+
+        QString pointsFilePath = QApplication::applicationDirPath() + "/" + bagId + "_pointsImage" + "/" + imageId + ".jpg";
+        QFileInfo fileInfo(pointsFilePath);
+        if(fileInfo.exists() && fileInfo.isFile())
+        {
+            showPointsImageLabel(true,pointsFilePath);
+        }
+        else
+        {
+            showPointsImageLabel(false);
+        }
+    }
 }
 
 void ImagePreviewWidget::loadPointImage(QPixmap pixmap, QString key)
@@ -449,6 +468,13 @@ void ImagePreviewWidget::slt_btnClicked()
 
 }
 
+void ImagePreviewWidget::slt_resetView()
+{
+    // 重置视图
+    fitToView();
+    scene()->setSceneRect(m_pixmapItem->boundingRect());
+}
+
 // =============== 坐标转换系统 ===============
 QPointF ImagePreviewWidget::sceneToImagePos(const QPointF &scenePos) const
 {
@@ -488,28 +514,8 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
         (event->modifiers() & Qt::ControlModifier))
     {
         // 重置视图
-        fitToView();
-        scene()->setSceneRect(m_pixmapItem->boundingRect());
+        slt_resetView();
     }
-//    else if (event->key() == Qt::Key_1 &&
-//        (event->modifiers() & Qt::KeypadModifier) &&
-//        (event->modifiers() & Qt::ControlModifier))
-//    {
-//        // 重置视图
-//        if(m_pixmapPointsItem->pixmap().isNull())
-//        {
-//            //请求点云数据
-//        }
-
-//        m_pixmapPointsItem->setVisible(!m_pixmapPointsItem->isVisible());
-//    }
-//    else if (event->key() == Qt::Key_Enter &&
-//        (event->modifiers() & Qt::KeypadModifier) &&
-//        (event->modifiers() & Qt::ControlModifier))
-//    {
-//       if(m_imageKey.split("-").size() == 2)
-//        emit sig_personHandleEnd(m_imageKey.split("-")[1],true);
-//    }
     //control事件
     else if(event->key() == Qt::Key_Control) {
         m_ctrlPressed = true;
@@ -553,6 +559,40 @@ void ImagePreviewWidget::showTipLabel(QString msg)
 
     m_tipLabel->raise();
     m_tipLabel->show();
+}
+
+void ImagePreviewWidget::showPointsImageLabel(bool isShow, QString pointsFilePath)
+{
+    if(nullptr == m_pointsImageCheckBox)
+    {
+        m_pointsImageCheckBox = new QCheckBox(this);
+        connect(m_pointsImageCheckBox, &QCheckBox::clicked, this, &ImagePreviewWidget::slt_setDisplayPointsItem);
+        m_pointsImageCheckBox->setCheckable(true);
+        m_pointsImageCheckBox->setChecked(false);
+        m_pointsImageCheckBox->setFixedSize(80,40);
+        m_pointsImageCheckBox->setText("点云图");
+        m_pointsImageCheckBox->setGeometry(this->width()-m_pointsImageCheckBox->width()-10,10,m_pointsImageCheckBox->width(),m_pointsImageCheckBox->height());
+        m_pointsImageCheckBox->setVisible(false);
+    }
+    m_pointsImageCheckBox->setVisible(isShow);
+
+    if(!pointsFilePath.isEmpty())
+    {
+        QPixmap currentPicture(pointsFilePath);
+        if(!currentPicture.isNull())
+        {
+            m_pointPixmap = currentPicture;
+        }
+    }
+
+    if(m_pointsImageCheckBox->isChecked())
+    {
+        m_pixmapPointsItem->setPixmap(m_pointPixmap);
+    }
+    else
+    {
+        m_pixmapPointsItem->setPixmap(QPixmap());
+    }
 }
 
 // =============== 缩放控制 ===============
@@ -889,8 +929,9 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
 
 void ImagePreviewWidget::deleteRectanglesInArea(const QRectF &sceneRect)
 {
-    const qreal epsilon = 2;
-    QRectF expandedSceneRect = sceneRect.adjusted(-epsilon,  -epsilon, epsilon, epsilon);
+    const qreal epsilon = 10;
+    QRectF expandedSceneRect = QRectF(sceneRect.x()-epsilon,sceneRect.y()-epsilon,sceneRect.width()+epsilon*2,sceneRect.height()+epsilon*2);
+//    sceneRect.adjusted(-epsilon,  -epsilon, epsilon, epsilon);
 
     // 使用场景坐标进行精确相交检测
     for(auto it = m_rectAnnotations.begin();  it != m_rectAnnotations.end();  )
@@ -1027,8 +1068,9 @@ QPointF ImagePreviewWidget::getLonLatFromServer(QPointF pos)
         QTimer timer;
         timer.setInterval(3000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
-        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
         timer.start();
         loop.exec();
 
@@ -1081,8 +1123,9 @@ QString ImagePreviewWidget::getScaleFromServer(QPointF pos1,QPointF pos2)
         QTimer timer;
         timer.setInterval(3000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
-        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
         timer.start();
         loop.exec();
 

@@ -7,6 +7,8 @@
 #include <QDir>
 #include "batchdownloader.h"
 #include "exportbagpage.h"
+#include "appconfigbase.h"
+#include "appcommonbase.h"
 
 QString value2AnnotationName(QString value)
 {
@@ -43,7 +45,9 @@ DataManager::DataManager(QWidget *parent) :
     connect(timer,&QTimer::timeout,this,[=](){
        getSysInfo();
     });
-    timer->start(1500);
+    timer->start(2500);
+
+    ui->inportBtn->hide();
 }
 
 DataManager::~DataManager()
@@ -53,10 +57,13 @@ DataManager::~DataManager()
 
 void DataManager::showEvent(QShowEvent *event)
 {
-    slt_refreshTableData();
+    AppCommonBase::getInstance()->g_isShowImage = false;
+    QTimer::singleShot(10, this, [this]() {
+        //3、获取系统占用信息
+        getSysInfo();
 
-    //3、获取系统占用信息
-    getSysInfo();
+        slt_refreshTableData();
+    });
 }
 
 void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
@@ -67,6 +74,7 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
         if(networkReply->error()==QNetworkReply::NoError)
         {
             auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            qDebug() << "BAG_LIST_GET result " << obj;
             if(m_restFulApi.replyResultCheck(obj,networkReply))
             {
                 resetTableInfo(obj);
@@ -74,7 +82,7 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
         }
         networkReply->deleteLater();
     }
-    else if(replyTypeMap.value(networkReply)==ReplyType::BAG_FILE_HANDLE)
+    else if(replyTypeMap.value(networkReply)==ReplyType::parase_bags)
     {
         //如果请求无错
         if(networkReply->error()==QNetworkReply::NoError)
@@ -391,8 +399,22 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
 
                     ExportInfo info;
-                    info.url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
-                    info.savePath = QString("%1/%2").arg(dirPath).arg(filePath);
+                    info.image_url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
+                    info.image_savePath = QString("%1/%2").arg(dirPath).arg(filePath);
+                    QString downloadPointsImage = AppConfigBase::getInstance()->readConfigSettings("list","downloadPointsImage","1");
+                    if(downloadPointsImage.toInt())
+                    {
+                        info.pointsImage_url = requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
+                        info.pointsImage_savePath = QString("%1/%2").arg(dirPath+"_pointsImage").arg(filePath);
+
+
+                        QString dirPath = QApplication::applicationDirPath() + "/" + bagId +"_pointsImage";
+                        QDir dir(dirPath);
+                        if (!dir.exists())  {
+                            dir.mkpath(".");   // 创建路径及所有必要父目录
+                        }
+                    }
+
 //                    tasks.append({
 //                        QUrl(requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath)),
 //                        QString("%1/%2").arg(dirPath).arg(filePath) // 分目录存储
@@ -411,6 +433,17 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                     m_progressBar.startStep4();
                    downloader->deleteLater();
                    slt_refreshTableData();
+                },Qt::QueuedConnection);
+
+                connect(downloader,&BatchDownloader::sig_handelFail,this,[=](){
+                   m_progressBar.startStep4();
+                   downloader->stopAllThread();
+                   //slt_refreshTableData();
+
+                   qDebug() << "======error";
+                   TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+                   dlg->startTimer();
+                   dlg->show();
                 },Qt::QueuedConnection);
 
                 // 3. 开始下载
@@ -432,13 +465,14 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
 void DataManager::slt_operateBtnClicked()
 {
     QPushButton* btn = dynamic_cast<QPushButton*>(sender());
-    if(nullptr != btn && !btn->property("uuid").toString().isEmpty())
+    if(nullptr != btn)
     {
         QString operateName = btn->text();
         QString id = btn->property("uuid").toString();
         if("解析" == operateName)
         {
-            processData(id);
+            QString path = btn->property("path").toString();
+            processData(path);
         }
         else if("标注" == operateName)
         {
@@ -457,11 +491,13 @@ void DataManager::slt_operateBtnClicked()
 
 void DataManager::slt_refreshTableData()
 {
+    m_mask.insertMask(ui->widgetCenter,"background-color:rgb(0,0,0,150)",0.5);
     searchBagsList();
     if(_recordInfoVec.size() > 0)
     {
         getBagCounts();
     }
+    m_mask.deleteMask(ui->widgetCenter);
 }
 
 void DataManager::slt_exportTableData()
@@ -542,7 +578,9 @@ void DataManager::searchBagsList()
 
     //查找所有的bag文件的路径
     QStringList folderPathList;
-    folderPathList.append("/home/sysadmin/Desktop/");//测试代码
+
+    QString folderPath = AppConfigBase::getInstance()->readConfigSettings("list","path","/home/sysadmin/Desktop/");
+    folderPathList.append(folderPath);//测试代码
     QVector<DataManager::RecordInfo> allBasMap;
     for(auto folderPath : folderPathList)
     {
@@ -576,7 +614,7 @@ void DataManager::getSysInfo()
 
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
     this->m_restFulApi.getPostData().clear();
-    m_restFulApi.visitUrl(requestUrl + API_PERCENT_INFO_GET,VisitType::GET,ReplyType::PERCENT_INFO_GET,"application/x-www-form-urlencoded",nullptr,false,15000);
+    m_restFulApi.visitUrl(requestUrl + API_PERCENT_INFO_GET,VisitType::GET,ReplyType::PERCENT_INFO_GET,"application/x-www-form-urlencoded",nullptr,false,5000);
     m_isGetSysInfo = true;
 }
 
@@ -665,7 +703,6 @@ void DataManager::resetTableInfo(QJsonObject objResult)
     int nCount = ui->tableWidget->rowCount();
     for (int n = 0; n < nCount;n++)
     {
-        if(!objResult.isEmpty())
         {
            QJsonArray array = objResult.value("data").toObject().value("bags").toArray();
            for(auto bagsObj : array)
@@ -674,6 +711,8 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                {
                    continue;
                }
+
+               qDebug() << "处理当前数据" << bagsObj.toObject();
 
                RecordInfo recordInfo;
                recordInfo.ID = QString::number(bagsObj.toObject().value("id").toInt());
@@ -756,6 +795,7 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                {
                    QPushButton* button = new QPushButton(widget2);
                    connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
+                   button->setProperty("path",ui->tableWidget->item(n,COLNAME::filePath)->text());
                    button->setFocusPolicy(Qt::NoFocus);
                    button->setCursor(Qt::PointingHandCursor);
                    button->setFixedSize(40,30);
@@ -809,6 +849,31 @@ void DataManager::resetTableInfo(QJsonObject objResult)
         }
     }
 
+    for (int n = 0; n < nCount;n++)
+    {
+        if(ui->tableWidget->cellWidget(n,COLNAME::operation) == nullptr)
+        {
+            //添加操作列
+            QWidget *widget2 = new QWidget(ui->tableWidget);
+            widget2->setStyleSheet("QWidget{background:transparent;} QPushButton{color: #33B8FF}");
+            QHBoxLayout *layout2 = new QHBoxLayout(widget2);
+            QPushButton* button = new QPushButton(widget2);
+            connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
+            button->setFocusPolicy(Qt::NoFocus);
+            button->setCursor(Qt::PointingHandCursor);
+            button->setFixedSize(40,30);
+            button->setText("解析");
+            button->setProperty("uuid","");
+            button->setProperty("path",ui->tableWidget->item(n,COLNAME::filePath)->text());
+            layout2->addWidget(button);
+
+            layout2->setContentsMargins(0,0,0,0);
+            layout2->setAlignment(layout2,Qt::AlignLeft | Qt::AlignVCenter);
+            widget2->setLayout(layout2);
+            ui->tableWidget->setCellWidget(n,COLNAME::operation,widget2);
+        }
+    }
+
     //更新显示数量
     m_allunHandleCount = m_allCount - m_allHandleCount;
     ui->allCount->setText(QString::number(m_allCount));
@@ -830,10 +895,19 @@ void DataManager::processData(QString id)
         return;
     }
 
+    qDebug() << "解析的文件路径" << id;
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
     this->m_restFulApi.getPostData().clear();
-    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_BAG_FILE_HANDLE).arg(id),VisitType::POST,ReplyType::BAG_FILE_HANDLE,"application/x-www-form-urlencoded",nullptr,true,1000*60*60*3);//等待一个小时
-    reply->setProperty("bagId",id);
+    QJsonObject post_data;
+    QJsonDocument document;
+    QByteArray post_param;
+    post_data.insert("file_path",id);
+    post_data.insert("process_immediately",true);
+    document.setObject(post_data);
+    post_param = document.toJson(QJsonDocument::Compact);
+    m_restFulApi.visitUrl(requestUrl + API_BAG_LIST_GET,
+                          VisitType::POST,ReplyType::parase_bags,"application/json",post_param,true,50000);
+
 
     //切换单元格的文字为解析中
     int nCount = ui->tableWidget->rowCount();
@@ -865,6 +939,16 @@ void DataManager::annotationData(QString id)
                 return;
             }
         }
+    }
+
+    QString folderPath = QApplication::applicationDirPath() + "/" + id;
+    QFileInfo fileInfo(folderPath);
+    if(!fileInfo.exists())
+    {
+        TipsDlgView* dlg = new TipsDlgView("未下载的数据不允许标注", nullptr);
+        dlg->startTimer();
+        dlg->show();
+        return;
     }
 
     tipsdlgviewForSure box("是否标注当前数据？",nullptr);
@@ -953,8 +1037,9 @@ void DataManager::findAllBagByFolder(QString folderPath, QVector<DataManager::Re
     QTimer timer;
     timer.setInterval(3000);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
     timer.start();
     loop.exec();
 
@@ -1043,8 +1128,9 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
     QTimer timer;
     timer.setInterval(10000);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
     timer.start();
     loop.exec();
 
@@ -1099,8 +1185,9 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
             QTimer timer;
             timer.setInterval(10000);  // 设置超时时间 3 秒
             timer.setSingleShot(true);  // 单次触发
-            connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+            connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
             connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+            connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
             timer.start();
             loop.exec();
 
@@ -1168,8 +1255,9 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
         QTimer timer;
         timer.setInterval(10000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
-        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
         timer.start();
         loop.exec();
 

@@ -10,7 +10,7 @@ MenuBar::MenuBar(QWidget *parent) :
 
     connect(ui->dataManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("数据管理");});
     connect(ui->userManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("用户管理");});
-    connect(ui->sysManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("系统管理");});
+    //connect(ui->sysManager, &QToolButton::clicked, [=]() {emit sig_menuClicked("系统管理");});
 }
 
 MenuBar::~MenuBar()
@@ -30,7 +30,7 @@ void MenuBar::setMenuCheck(MenuBar::MenuType type)
     }
     else if(type == MenuType::SYS_MANAGER)
     {
-        ui->sysManager->setChecked(true);
+        //ui->sysManager->setChecked(true);
     }
 }
 

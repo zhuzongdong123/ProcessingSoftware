@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>797</width>
-    <height>543</height>
+    <width>815</width>
+    <height>622</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -213,13 +213,6 @@ background-color: rgb(38, 46, 53);</string>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="checkBox_6">
-             <property name="text">
-              <string>服务器</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <spacer name="horizontalSpacer_9">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -244,11 +237,14 @@ background-color: rgb(38, 46, 53);</string>
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="groupBox">
+            <widget class="QGroupBox" name="groupBox1">
              <property name="title">
               <string>病害类事件</string>
              </property>
              <property name="checkable">
+              <bool>false</bool>
+             </property>
+             <property name="checked">
               <bool>false</bool>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -416,7 +412,7 @@ background-color: rgb(38, 46, 53);</string>
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="groupBox_2">
+            <widget class="QGroupBox" name="groupBox2">
              <property name="title">
               <string>资产类事件</string>
              </property>
@@ -610,6 +606,25 @@ background-color: rgb(38, 46, 53);</string>
              </spacer>
             </item>
            </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="errorTip">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>25</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(239, 41, 41);</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
           </widget>
          </item>
          <item>

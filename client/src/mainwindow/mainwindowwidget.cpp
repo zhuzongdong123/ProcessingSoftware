@@ -49,6 +49,8 @@ void MainWindowWidget::slt_showDefaultPage()
         ui->stackedWidget->addWidget(m_dataManagerPage);
     }
 
+    ui->menuBar->show();
+    QApplication::processEvents();
     ui->stackedWidget->setCurrentWidget(m_dataManagerPage);
     ui->menuBar->setMenuCheck(MenuBar::MenuType::DATA_MANAGER);
     QApplication::processEvents();

@@ -48,6 +48,7 @@ public:
 
     //log日志输出路径
     QString g_logFolder;
+    bool g_isShowImage = false;
 };
 
 

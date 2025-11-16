@@ -8,6 +8,7 @@
 #include "batchdownloader.h"
 #include <QDir>
 #include <QDebug>
+#include "appcommonbase.h"
 
 #include <QPropertyAnimation>
 
@@ -43,7 +44,7 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
 {
     ui->setupUi(this);
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &AnnotationDataPage::slt_requestFinishedSlot);
-    connect(ui->pointsDisplayBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setDisplayPointsItem);
+    connect(ui->resetViewBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_resetView);
     connect(ui->addHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleEnd);
     connect(ui->deleteHandleFlagBtn, &QPushButton::clicked, ui->imagePreviewWidget, &ImagePreviewWidget::slt_setPersonHandleCancle);
     connect(ui->returnBtn, &QPushButton::clicked, this, &AnnotationDataPage::slt_btnClicked);
@@ -63,6 +64,8 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
 
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
+
+    ui->pushButton->hide();
 }
 
 AnnotationDataPage::~AnnotationDataPage()
@@ -72,6 +75,7 @@ AnnotationDataPage::~AnnotationDataPage()
 
 void AnnotationDataPage::setBagId(QString id)
 {
+    AppCommonBase::getInstance()->g_isShowImage = true;
     m_bagId = id;
     ui->girdlayout->clearAll();
     m_currentSelectWidget = nullptr;
@@ -93,8 +97,9 @@ void AnnotationDataPage::setBagId(QString id)
     QTimer timer;
     timer.setInterval(10000);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
     timer.start();
     loop.exec();
 
@@ -137,6 +142,11 @@ void AnnotationDataPage::setBagId(QString id)
             QApplication::processEvents();
         }
     }
+}
+
+void AnnotationDataPage::showEvent(QShowEvent *event)
+{
+    AppCommonBase::getInstance()->g_isShowImage = true;
 }
 
 #include <QDir>
@@ -344,6 +354,28 @@ void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
         }
         networkReply->deleteLater();
     }
+    else if(replyTypeMap.value(networkReply)==ReplyType::BAG_ANNOTATION_STATUS_SET2)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            QApplication::processEvents();
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            TipsDlgView* dlg = new TipsDlgView("标注状态更新成功", nullptr);
+            dlg->startTimer(2000);
+            dlg->show();
+            QApplication::processEvents();
+        }
+        else
+        {
+            QApplication::processEvents();
+            TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+            dlg->startTimer(2000);
+            dlg->show();
+            QApplication::processEvents();
+        }
+        networkReply->deleteLater();
+    }
 }
 
 void AnnotationDataPage::slt_imageLoadSuccessed(QString filePath)
@@ -378,14 +410,18 @@ void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
         return;
     }
 
-    QFileInfo fileinfo(filePath);
-    QString fileName = fileinfo.baseName();
-    QString suffix = fileinfo.suffix();
-    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
-    this->m_restFulApi.getPostData().clear();
-    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(fileName + "." + suffix),
-                          VisitType::GET,ReplyType::POINT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,20000,QNetworkRequest::Priority::HighPriority);
-    reply->setProperty("key",key);
+//    //show bag points image
+//    if(ui->pointsDisplayBtn->isChecked())
+//    {
+//        QFileInfo fileinfo(filePath);
+//        QString fileName = fileinfo.baseName();
+//        QString suffix = fileinfo.suffix();
+//        QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+//        this->m_restFulApi.getPostData().clear();
+//        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_POINT_IMAGE_DETIAL_GET).arg(obj.value("bag_id").toString()).arg(fileName + "." + suffix),
+//                              VisitType::GET,ReplyType::POINT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,20000,QNetworkRequest::Priority::HighPriority);
+//        reply->setProperty("key",key);
+//    }
 }
 
 void AnnotationDataPage::slt_watcherFinished()
@@ -553,6 +589,9 @@ void ImageLoder::setImageInfo(QJsonObject obj)
 
     QString loadFilePath = obj.value("file_path").toString();
     m_watcher->setFuture(QtConcurrent::run([=](){
+        if(AppCommonBase::getInstance()->g_isShowImage == false)
+            return QPixmap();
+
         //获取字节流构造 QPixmap 对象
         QPixmap currentPicture(loadFilePath);
         //currentPicture.loadFromData(picArray);
@@ -730,6 +769,11 @@ void ImageLoder::mousePressEvent(QMouseEvent *event)
     emit sig_mousePressedImage(m_obj);
 }
 
+void ImageLoder::closeEvent(QCloseEvent *event)
+{
+
+}
+
 void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
 {
     if(replyTypeMap.value(networkReply)==ReplyType::IMAGE_DETIAL_GET)
@@ -791,28 +835,6 @@ void ImageLoder::slt_requestFinishedSlot(QNetworkReply *networkReply)
         }
         networkReply->deleteLater();
     }
-    else if(replyTypeMap.value(networkReply)==ReplyType::BAG_ANNOTATION_STATUS_SET2)
-    {
-        //如果请求无错
-        if(networkReply->error()==QNetworkReply::NoError)
-        {
-            QApplication::processEvents();
-            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
-            TipsDlgView* dlg = new TipsDlgView("标注状态更新成功", nullptr);
-            dlg->startTimer(2000);
-            dlg->show();
-            QApplication::processEvents();
-        }
-        else
-        {
-            QApplication::processEvents();
-            TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
-            dlg->startTimer(2000);
-            dlg->show();
-            QApplication::processEvents();
-        }
-        networkReply->deleteLater();
-    }
 }
 
 void ImageLoder::slt_loadFinished()
@@ -822,6 +844,9 @@ void ImageLoder::slt_loadFinished()
 
 void ImageLoder::slt_watcherFinished()
 {
+    if(AppCommonBase::getInstance()->g_isShowImage == false)
+        return;
+
     QFuture<QPixmap> future = m_watcher->future();
     if (future.result().isNull())
     {

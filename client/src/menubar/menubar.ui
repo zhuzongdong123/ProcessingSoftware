@@ -125,39 +125,6 @@ QToolButton:checked{color: rgb(255,255,255);background-color: rgb(74, 83, 92);}<
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="sysManager">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>系统设置</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../../myicon.qrc">
-          <normaloff>:/resources/image/sysmanager-normal.png</normaloff>
-          <normalon>:/resources/image/sysmanager-select.png</normalon>:/resources/image/sysmanager-normal.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>30</width>
-          <height>30</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonTextUnderIcon</enum>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">buttonGroup</string>
-        </attribute>
-       </widget>
-      </item>
-      <item>
        <spacer name="verticalSpacer">
         <property name="orientation">
          <enum>Qt::Vertical</enum>

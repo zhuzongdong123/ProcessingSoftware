@@ -61,6 +61,7 @@ void AppConfigBase::readConfig(QString path)
     m_configIniRead->setIniCodec(QTextCodec::codecForName("utf-8"));
     updateConfigSetting("server","port_business",QString::number(8083));
     updateConfigSetting("server","port_bag",QString::number(8898));
+    updateConfigSetting("list","path","/home/sysadmin/Desktop/");
 }
 
 void AppConfigBase::readCameraConfig(QString path)

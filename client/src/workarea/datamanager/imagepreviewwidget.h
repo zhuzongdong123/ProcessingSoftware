@@ -20,6 +20,7 @@
 #include <QKeySequence>
 #include <QString>
 #include <QGraphicsItemGroup>
+#include <QCheckBox>
 
 class ExtendedKeyMapper {
 private:
@@ -222,6 +223,7 @@ public slots:
     void slt_setPersonHandleEnd();
     void slt_setPersonHandleCancle();
     void slt_btnClicked();
+    void slt_resetView();
 
 signals:
     void sig_personHandleEnd(QString id, bool isHandle);
@@ -251,6 +253,7 @@ private:
     bool isPointInImage(const QPointF &scenePos) const;
     void handleKeyPress(QKeyEvent *event);
     void showTipLabel(QString msg);
+    void showPointsImageLabel(bool isShow, QString pointsFilePath = "");
 
     // 缩放控制
     void zoomAtPosition(qreal factor, const QPointF &fixedScenePos);
@@ -276,6 +279,7 @@ private:
     QPointF m_dragStartPos;
     QPoint m_lastPanPoint;
     QLabel *m_tipLabel = nullptr;
+    QCheckBox* m_pointsImageCheckBox = nullptr;
 
     // 标注配置
     //QColor m_rectColor = Qt::red;

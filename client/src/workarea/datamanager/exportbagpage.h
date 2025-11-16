@@ -35,9 +35,11 @@ private:
     QSet<QString> m_bagIdList;
     MyMask m_mask;
     RestFulApi m_restFulApi;
+    QMap<QString,QString> m_bagDrictionMap;
 
 private slots:
     void slt_startExport();
+    void slt_requestFinishedSlot(QNetworkReply *networkReply);
 
 private:
     QWidget *getMainWindow();

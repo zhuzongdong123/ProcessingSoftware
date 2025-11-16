@@ -99,7 +99,9 @@ QScrollBar::sub-line{
 }
 
 /*提示框样式*/
-QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,255);border-radius:4px;}</string>
+QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,255);border-radius:4px;}
+
+QPushButton{background:transparent;border:none}</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,1,1">
       <item>

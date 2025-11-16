@@ -119,7 +119,7 @@ QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,2
                <string notr="true">font-size:22px</string>
               </property>
               <property name="text">
-               <string>xxx文件</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -279,7 +279,7 @@ color: rgb(51, 51, 51);border-radius:4px</string>
                  <item>
                   <layout class="QVBoxLayout" name="verticalLayout_4">
                    <property name="spacing">
-                    <number>12</number>
+                    <number>6</number>
                    </property>
                    <item>
                     <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -960,7 +960,7 @@ color: rgb(51, 51, 51);border-radius:4px</string>
                  <item>
                   <layout class="QVBoxLayout" name="verticalLayout_8">
                    <property name="spacing">
-                    <number>12</number>
+                    <number>6</number>
                    </property>
                    <item>
                     <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -1410,7 +1410,7 @@ color: rgb(51, 51, 51);border-radius:4px</string>
                    <item>
                     <widget class="QPushButton" name="pushButton_4">
                      <property name="toolTip">
-                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、ctrl+数字键盘1，可切换是否显示点云图片；&lt;/p&gt;&lt;p&gt;2、ctrl+s，可进行数据保存；&lt;/p&gt;&lt;p&gt;3、ctrl+2，可人工设置图片为已标记；&lt;/p&gt;&lt;p&gt;3、ctrl+3，可人工设置图片取消标记；&lt;/p&gt;&lt;p&gt;4、方向键-左键，键盘按下后可切换上一张图片；&lt;/p&gt;&lt;p&gt;5、方向键-右键，键盘按下后可切换下一张图片；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、还原视图(快捷键ctrl+数字键0)：可将放大缩小后的当前图片一键还原到最初形态。&lt;/p&gt;&lt;p&gt;2、一键清屏：可将当前图片中的所有事件清空；&lt;/p&gt;&lt;p&gt;3、添加标记：可人工设置图片为已标记；&lt;/p&gt;&lt;p&gt;4、删除标记：可人工设置图片取消标记；&lt;/p&gt;&lt;p&gt;5、坐标拾取：可将图片中某个像素点的经纬度坐标提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;6、测距：可将图片中两个像素点的实际距离提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;7、上一张(快捷键A)，可切换上一张图片；&lt;/p&gt;&lt;p&gt;8、下一张(快捷键D)，可切换下一张图片；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                      </property>
                      <property name="styleSheet">
                       <string notr="true">border:none;</string>
@@ -1519,7 +1519,7 @@ QPushButton:pressed{background-color:#33B8FF}</string>
                        </widget>
                       </item>
                       <item row="0" column="0">
-                       <widget class="QPushButton" name="pointsDisplayBtn">
+                       <widget class="QPushButton" name="resetViewBtn">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                           <horstretch>0</horstretch>
@@ -1530,10 +1530,10 @@ QPushButton:pressed{background-color:#33B8FF}</string>
                          <string notr="true">QPushButton:checked{background-color: rgb(51, 184, 255);border:none;border-radius:4px;color:rgb(255,255,255)}</string>
                         </property>
                         <property name="text">
-                         <string>点云显示</string>
+                         <string>还原视图</string>
                         </property>
                         <property name="checkable">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </property>
                        </widget>
                       </item>
@@ -1616,7 +1616,24 @@ QPushButton:pressed{background-color:#33B8FF}</string>
             </widget>
            </item>
            <item>
-            <widget class="ImagePreviewWidget" name="imagePreviewWidget" native="true"/>
+            <widget class="ImagePreviewWidget" name="imagePreviewWidget" native="true">
+             <property name="styleSheet">
+              <string notr="true">    QCheckBox {
+       spacing: 5px; 
+       color: rgb(255,255,255);
+    }
+    QCheckBox::indicator {
+       width: 18px;
+       height: 18px;
+    }
+    QCheckBox::indicator:unchecked {
+       image: url(:/resources/image/noselect.png); 
+    }
+    QCheckBox::indicator:checked {
+       image: url(:/resources/image/select.png);  
+    }</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>

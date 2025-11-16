@@ -66,7 +66,7 @@
 //获取像素点对应的尺寸
 #define API_EVENT_CALC_SCALE_GET "/api/v1/subdata/calc_scale"
 //获取数据包的方向
-#define API_PARAMETER_GET  "/api/v1/subdata/%1/parameter"
+#define API_ORIENTATION  "/api/v1/subdata/%1/orientation"
 
 /*
  *提供restfull便携接口类外使用
@@ -104,6 +104,8 @@ enum ReplyType
     EVENT_CALC_LATLON_GET,
     EVENT_CALC_SCALE_GET,
     PARAMETER_GET,
+    parase_bags,
+    ORIENTATION,
 };
 
 enum class VisitType

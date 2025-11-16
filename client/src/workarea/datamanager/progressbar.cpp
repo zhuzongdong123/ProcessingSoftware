@@ -66,6 +66,11 @@ void ProgressBar::showEvent(QShowEvent *event)
 
     raise();
     show();
+
+    ui->step1->clear();
+    ui->step2->clear();
+    ui->step3->clear();
+    ui->step4->clear();
 }
 
 void ProgressBar::startTracking()

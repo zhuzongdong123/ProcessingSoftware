@@ -31,6 +31,7 @@ public slots:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 signals:
     void sig_loadFinished();
@@ -69,6 +70,9 @@ public:
 
     //设置bag文件的id
     void setBagId(QString id);
+
+protected:
+    void showEvent(QShowEvent *event) override;
 
 signals:
     void sig_mousePressed(QString id);

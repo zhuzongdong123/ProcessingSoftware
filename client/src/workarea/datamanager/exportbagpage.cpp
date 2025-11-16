@@ -8,9 +8,27 @@
 #include "batchdownloader.h"
 #include "tipsdlgview.h"
 #include <QtConcurrent>
+#include <QScreen>
+#include "appconfigbase.h"
+#include <QVariant>
 
-void saveJsonArrayToCsv(QJsonArray jsonArray, QString filePath)
+void saveJsonArrayToCsv(QJsonArray jsonArray, QString filePath, QMap<QString,QString> dirctionMap)
 {
+    QJsonArray arrayTemp;
+    for(auto jsonTemp : jsonArray)
+    {
+        QJsonObject tempObj = jsonTemp.toObject();
+        QString bagId = tempObj.value("bag_id").toString();
+        QString dirction;
+        if(dirctionMap.find(bagId) != dirctionMap.end())
+        {
+            dirction = dirctionMap.find(bagId).value();
+        }
+        tempObj.insert("direction",dirction);
+        arrayTemp.push_back(tempObj);
+    }
+    jsonArray = arrayTemp;
+
     qDebug() << "saveJsonArrayToCsv" << jsonArray << filePath;
 
     QFile file(filePath);
@@ -33,7 +51,21 @@ void saveJsonArrayToCsv(QJsonArray jsonArray, QString filePath)
         QJsonObject obj = value.toObject();
         QStringList row;
         for (const QString& key : obj.keys())  {
-            row.append(obj.value(key).toString());
+
+            QJsonValue jsonValue = obj.value(key);
+            if(jsonValue.isString())
+                row.append(obj.value(key).toString());
+            else if(jsonValue.isDouble())
+            {
+                if(key == "lon" || key == "lat")
+                {
+                    row.append(QString::number(obj.value(key).toDouble(),'f',8));
+                }
+                else
+                {
+                    row.append(QString::number(obj.value(key).toDouble()));
+                }
+            }
         }
         out << row.join("\t")  << "\n";
     }
@@ -46,7 +78,7 @@ ExportBagPage::ExportBagPage(QWidget *parent) :
     ui(new Ui::exportBagPage)
 {
     ui->setupUi(this);
-    //setWindowFlags(Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
+    setWindowFlags(Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
 
     connect(ui->selectBtn, &QPushButton::clicked, [this](){
         // 2. 记住上次选择目录（使用QSettings）
@@ -60,6 +92,7 @@ ExportBagPage::ExportBagPage(QWidget *parent) :
     });
     connect(ui->closeBtn,&QPushButton::clicked, this, &ExportBagPage::close);
     connect(ui->exportBtn,&QPushButton::clicked, this, &ExportBagPage::slt_startExport);
+    connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &ExportBagPage::slt_requestFinishedSlot);
 }
 
 ExportBagPage::~ExportBagPage()
@@ -95,6 +128,18 @@ void ExportBagPage::showEvent(QShowEvent *event)
 
     raise();
     show();
+
+    QTimer::singleShot(10, this, [this]() {
+        QScreen *activeScreen = QGuiApplication::screenAt(QCursor::pos());
+        QRect screenGeometry = activeScreen->geometry();
+        this->move(screenGeometry.center()  - this->rect().center());
+    });
+
+    if(!m_isRunning)
+    {
+        ui->progressBar->setValue(0);
+        ui->localProcess_local->hide();
+    }
 }
 
 void ExportBagPage::closeEvent(QCloseEvent *event)
@@ -104,9 +149,29 @@ void ExportBagPage::closeEvent(QCloseEvent *event)
 
 void ExportBagPage::slt_startExport()
 {
+    m_bagDrictionMap.clear();
     m_isRunning = true;
     ui->exportBtn->setEnabled(false);
     ui->selectBtn->setEnabled(false);
+    ui->errorTip->clear();
+    ui->progressBar->setValue(0);
+
+    //save selected events
+    QSet<QString> selectedEventsSet;
+    QList<QCheckBox*> list1 = ui->groupBox1->findChildren<QCheckBox*>();
+    for(auto box : list1)
+    {
+        QString name = box->text();
+        selectedEventsSet.insert(name);
+    }
+
+    QList<QCheckBox*> list2 = ui->groupBox2->findChildren<QCheckBox*>();
+    for(auto box : list2)
+    {
+        QString name = box->text();
+        selectedEventsSet.insert(name);
+    }
+
     //先下载所有的事件
     QList<ExportInfo> tasks;
     for(auto bagId : m_bagIdList)
@@ -116,10 +181,11 @@ void ExportBagPage::slt_startExport()
         QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + QString(API_IMAGES_LIST_GET).arg(bagId),VisitType::GET,ReplyType::IMAGES_LIST_GET_All1);
         QEventLoop loop;
         QTimer timer;
-        timer.setInterval(3000);  // 设置超时时间 3 秒
+        timer.setInterval(15000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
-        connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
         timer.start();
         loop.exec();
 
@@ -157,16 +223,17 @@ void ExportBagPage::slt_startExport()
                         QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
 
                         ExportInfo info;
-                        info.url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
-                        info.savePath = QString("%1/%2").arg(dirPath).arg(filePath);
+                        info.image_url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
+                        info.image_savePath = QString("%1/%2").arg(dirPath).arg(filePath);
                         info.bagId =bagId;
+                        info.selectedEventsSet = selectedEventsSet;
 
                         filePath = filePath.replace(".jpg","");
                         filePath = filePath.replace(".png","");
                         info.imageId = filePath;
                         tasks.append(info);
 
-                        qDebug() << "准备下载的信息：" << info.bagId << info.imageId << info.url << info.savePath;
+                        qDebug() << "准备下载的信息：" << info.bagId << info.imageId << info.image_url << info.image_savePath;
                     }
                 }
             }
@@ -177,9 +244,18 @@ void ExportBagPage::slt_startExport()
             TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
             dlg->startTimer();
             dlg->show();
+            ui->exportBtn->setEnabled(true);
+            ui->selectBtn->setEnabled(true);
             m_isRunning = false;
             return;
         }
+        reply->deleteLater();
+
+        //get dir todo ========
+        AppDatabaseBase::getInstance()->getBagServerUrl();
+        this->m_restFulApi.getPostData().clear();
+        QNetworkReply* replyTemp = m_restFulApi.visitUrl(requestUrl + QString(API_ORIENTATION).arg(bagId),VisitType::GET,ReplyType::ORIENTATION);
+        replyTemp->setProperty("bag_id",bagId);
     }
 
     if(tasks.size() == 0)
@@ -187,6 +263,8 @@ void ExportBagPage::slt_startExport()
         TipsDlgView* dlg = new TipsDlgView("需要下载的图片为空", nullptr);
         dlg->startTimer();
         dlg->show();
+        ui->exportBtn->setEnabled(true);
+        ui->selectBtn->setEnabled(true);
         m_isRunning = false;
         return;
     }
@@ -195,15 +273,19 @@ void ExportBagPage::slt_startExport()
 
     // 2. 创建下载器实例
     BatchDownloader *downloader = new BatchDownloader;
-    connect(downloader,&BatchDownloader::sig_save2LoacalStep,this,[=](int current, int total){
-        double radius = double(current/total);
-        ui->progressBar->setValue(100*radius);
+    connect(downloader,&BatchDownloader::sig_downLoadFromUrlStep,this,[=](int current, int total){
+        double radius = double(current)/double(total);
+        qDebug() << "step" << radius << int(100*radius);
+        if(ui->errorTip->text().isEmpty())
+            ui->progressBar->setValue(100*radius);
+        QApplication::processEvents();
     },Qt::QueuedConnection);
 
     connect(downloader,&BatchDownloader::sig_sendAllHandleEvents,this,[=](QJsonArray array){
-        QString filePath = ui->lineEditPath->text() + "/" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss.csv");
-        QtConcurrent::run([array, filePath]() {
-                saveJsonArrayToCsv(array, filePath);
+        QString filePath = ui->lineEditPath->text() + "/" + QDateTime::currentDateTime().toString("yyyyMMddhhmmss") + ".csv";
+        QMap<QString,QString> bagDrictionMap = m_bagDrictionMap;
+        QtConcurrent::run([array, filePath,bagDrictionMap]() {
+                saveJsonArrayToCsv(array, filePath, bagDrictionMap);
                 qDebug() << "CSV file saved successfully";
             });
     },Qt::QueuedConnection);
@@ -216,8 +298,51 @@ void ExportBagPage::slt_startExport()
        ui->selectBtn->setEnabled(true);
     },Qt::QueuedConnection);
 
+    connect(downloader,&BatchDownloader::sig_handelFail,this,[=](){
+       qDebug() << "stop1 ===============";
+       downloader->stopAllThread();
+       qDebug() << "stop2 ===============";
+       //downloader->deleteLater();
+       qDebug() << "stop3 ===============";
+       m_isRunning = false;
+       ui->exportBtn->setEnabled(true);
+       ui->selectBtn->setEnabled(true);
+
+       ui->errorTip->setText("导出失败，请稍后重试");
+       TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+       dlg->startTimer();
+       dlg->show();
+    },Qt::QueuedConnection);
+
     // 3. 开始下载
     downloader->downloadImages(tasks);
+}
+
+void ExportBagPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
+{
+    if(replyTypeMap.value(networkReply)==ReplyType::ORIENTATION)
+    {
+        //如果请求无错
+        if(networkReply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(networkReply->readAll()).object();
+            if(m_restFulApi.replyResultCheck(obj,networkReply))
+            {
+                QString direction = obj.value("data").toObject().value("orientation").toString();
+                QString bagId = networkReply->property("bag_id").toString();
+
+                if(m_bagDrictionMap.find(bagId) == m_bagDrictionMap.end())
+                {
+                    m_bagDrictionMap.insert(bagId,direction);
+                }
+                else
+                {
+                    m_bagDrictionMap.find(bagId).value() = direction;
+                }
+            }
+        }
+        networkReply->deleteLater();
+    }
 }
 
 QWidget* ExportBagPage::getMainWindow()
