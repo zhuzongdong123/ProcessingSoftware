@@ -62,6 +62,14 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
        ui->coordinatePickingBtn->setChecked(false);
     });
 
+    //上一张，下一张
+    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_preImageBtnClicked,this,[=](){
+       turn2PreImage();
+    });
+    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_nextImageBtnClicked,this,[=](){
+        turn2NextImage();
+    });
+
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
 
@@ -227,6 +235,63 @@ void AnnotationDataPage::saveCacheToServer()
     post_param = document.toJson(QJsonDocument::Compact);
     m_restFulApi.visitUrl(requestUrl + API_ANNOTATION_ADD_EVENTS,
                           VisitType::POST,ReplyType::ANNOTATION_ADD_EVENTS,"application/json",post_param,true);
+}
+
+void AnnotationDataPage::turn2PreImage()
+{
+    if(nullptr == m_currentSelectWidget)
+    {
+        return;
+    }
+
+    QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
+    int index = widgets->indexOf(m_currentSelectWidget);
+    if (index <= 0) { // 第一个或无效
+        return;
+    }
+    QWidget* preWidget = widgets->at(index  - 1);
+    if(preWidget != nullptr)
+    {
+        ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(preWidget);
+        if(nullptr != imageLoder)
+        {
+            emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
+            emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
+            m_currentSelectWidget = imageLoder;
+            imageLoder->setSelected(true);
+            QApplication::processEvents();
+            scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
+        }
+    }
+}
+
+void AnnotationDataPage::turn2NextImage()
+{
+    if(nullptr == m_currentSelectWidget)
+    {
+        return;
+    }
+
+    QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
+    int index = widgets->indexOf(m_currentSelectWidget);
+    if (index < 0 || index >= (widgets->size()  - 1)) { // 最后一个或无效
+        return;
+    }
+
+    QWidget* nextWidget = widgets->at(index  + 1);
+    if(nextWidget != nullptr)
+    {
+        ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(nextWidget);
+        if(nullptr != imageLoder)
+        {
+            emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
+            emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
+            m_currentSelectWidget = imageLoder;
+            imageLoder->setSelected(true);
+            QApplication::processEvents();
+            scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
+        }
+    }
 }
 
 void AnnotationDataPage::slt_requestFinishedSlot(QNetworkReply *networkReply)
@@ -443,48 +508,11 @@ void AnnotationDataPage::slt_btnClicked()
         }
         else if(btn == ui->preImageBtn && nullptr != m_currentSelectWidget)
         {
-            QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
-            int index = widgets->indexOf(m_currentSelectWidget);
-            if (index <= 0) { // 第一个或无效
-                return;
-            }
-            QWidget* preWidget = widgets->at(index  - 1);
-            if(preWidget != nullptr)
-            {
-                ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(preWidget);
-                if(nullptr != imageLoder)
-                {
-                    emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
-                    emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
-                    m_currentSelectWidget = imageLoder;
-                    imageLoder->setSelected(true);
-                    QApplication::processEvents();
-                    scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
-                }
-            }
+            turn2PreImage();
         }
         else if(btn == ui->nextImageBtn && nullptr != m_currentSelectWidget)
         {
-            QList<QWidget *> *widgets = ui->girdlayout->getCurWidgetList();
-            int index = widgets->indexOf(m_currentSelectWidget);
-            if (index < 0 || index >= (widgets->size()  - 1)) { // 最后一个或无效
-                return;
-            }
-
-            QWidget* nextWidget = widgets->at(index  + 1);
-            if(nextWidget != nullptr)
-            {
-                ImageLoder* imageLoder = dynamic_cast<ImageLoder*>(nextWidget);
-                if(nullptr != imageLoder)
-                {
-                    emit sig_mousePressed(imageLoder->getImageInfo().value("id").toString());
-                    emit imageLoder->sig_mousePressedImage(imageLoder->getImageInfo());
-                    m_currentSelectWidget = imageLoder;
-                    imageLoder->setSelected(true);
-                    QApplication::processEvents();
-                    scrollToWidgetWithAnimation(ui->girdlayout->getScrollArea(),imageLoder);
-                }
-            }
+            turn2NextImage();
         }
         else if(btn == ui->annotationEndBtn)
         {

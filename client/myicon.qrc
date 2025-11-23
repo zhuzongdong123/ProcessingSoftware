@@ -29,6 +29,9 @@
         <file>resources/image/showPwd.png</file>
         <file>resources/image/add.png</file>
         <file>resources/image/user-normal.png</file>
+        <file>resources/image/download2.png</file>
+        <file>resources/image/export2.png</file>
+        <file>resources/image/download3.png</file>
     </qresource>
     <qresource prefix="/qss"/>
 </RCC>

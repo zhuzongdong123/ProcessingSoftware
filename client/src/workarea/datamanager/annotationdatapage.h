@@ -92,6 +92,8 @@ private:
 private:
     QStringList getImagePaths(const QString &folderPath);
     void saveCacheToServer();
+    void turn2PreImage();
+    void turn2NextImage();
 
 private slots:
     void slt_requestFinishedSlot(QNetworkReply *networkReply);

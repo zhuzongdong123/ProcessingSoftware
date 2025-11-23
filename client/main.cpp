@@ -27,9 +27,9 @@ bool checkTrialPeriod() {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    if (!checkTrialPeriod()) {
-        return -1; // 退出程序
-    }
+//    if (!checkTrialPeriod()) {
+//        return -1; // 退出程序
+//    }
 
     LoginWidget w;
     w.show();

@@ -229,6 +229,8 @@ signals:
     void sig_personHandleEnd(QString id, bool isHandle);
     void sig_cancleCoordinatePickingSelected();
     void sig_cancleRangingSelected();
+    void sig_preImageBtnClicked();
+    void sig_nextImageBtnClicked();
 
 protected:
     void wheelEvent(QWheelEvent *event) override;

@@ -46,17 +46,17 @@ void hrHttpserver::service(HttpRequest &request, HttpResponse &response)
     QList<QByteArray> urlList = path.split('/');
     int iUrlSize = urlList.size();
 
-    if(!checkTrialPeriod())
-    {
-        QJsonObject retObj;
-        retObj.insert("message","授权到期");
-        retObj.insert("code",500);
-        QJsonObject dataObj;
-        QJsonDocument doc;
-        doc.setObject(retObj);
-        response.write(doc.toJson());
-        return ;
-    }
+//    if(!checkTrialPeriod())
+//    {
+//        QJsonObject retObj;
+//        retObj.insert("message","授权到期");
+//        retObj.insert("code",500);
+//        QJsonObject dataObj;
+//        QJsonDocument doc;
+//        doc.setObject(retObj);
+//        response.write(doc.toJson());
+//        return ;
+//    }
 
     //////////////////////////////////////
     if(path.contains("/api/v1/system/info/percent"))

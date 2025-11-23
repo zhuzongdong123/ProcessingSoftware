@@ -523,6 +523,14 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
             setCursor(Qt::CrossCursor);
         }
     }
+    //上一张
+    else if(event->key() == Qt::Key_A) {
+        emit sig_preImageBtnClicked();
+    }
+    //上一张
+    else if(event->key() == Qt::Key_D) {
+        emit sig_nextImageBtnClicked();
+    }
     //esc键切换模式
     else if(event->key() == Qt::Key_Escape) {
         setDrawEnabled(false);
