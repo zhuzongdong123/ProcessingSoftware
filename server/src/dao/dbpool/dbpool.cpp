@@ -45,6 +45,10 @@ QSqlDatabase DbPool::getDbbyId(QString dbId)
         db.setConnectOptions("QSQLITE_ENABLE_SHARED_CACHE=1;QSQLITE_BUSY_TIMEOUT=5000");
         // 关键：添加SSL禁用选项
         db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
+        // 关键配置
+        db.exec("PRAGMA  journal_mode=WAL");
+        db.exec("PRAGMA  synchronous=NORMAL");
+        db.exec("PRAGMA  busy_timeout=5000");  // 5秒忙等待
 
         if(db.open())
         {

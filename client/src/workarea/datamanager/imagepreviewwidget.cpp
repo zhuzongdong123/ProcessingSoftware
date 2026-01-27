@@ -531,6 +531,10 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
     else if(event->key() == Qt::Key_D) {
         emit sig_nextImageBtnClicked();
     }
+    //坐标选取
+    else if(event->key() == Qt::Key_Q) {
+        emit sig_coordinatePickingBtnClicked();
+    }
     //esc键切换模式
     else if(event->key() == Qt::Key_Escape) {
         setDrawEnabled(false);
@@ -579,6 +583,7 @@ void ImagePreviewWidget::showPointsImageLabel(bool isShow, QString pointsFilePat
         m_pointsImageCheckBox->setChecked(false);
         m_pointsImageCheckBox->setFixedSize(80,40);
         m_pointsImageCheckBox->setText("点云图");
+        m_pointsImageCheckBox->setStyleSheet("color:#33B8FF");
         m_pointsImageCheckBox->setGeometry(this->width()-m_pointsImageCheckBox->width()-10,10,m_pointsImageCheckBox->width(),m_pointsImageCheckBox->height());
         m_pointsImageCheckBox->setVisible(false);
     }

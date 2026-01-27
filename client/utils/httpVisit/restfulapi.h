@@ -13,6 +13,7 @@
 //************文件处理
 //获取所有的文件信息
 #define API_FILE_SYSTEM_INFO "/api/v1/files/browse"
+#define API_LIST_BAG_INFO "/api/v1/files/list_bag"
 
 //*****************身份信息
 //登录验证密码
@@ -97,6 +98,7 @@ enum ReplyType
     IDENTITY_AUTHENTICATION_ADD,
     IDENTITY_AUTHENTICATION_DEL,
     FILE_SYSTEM_INFO,
+    LIST_BAG_INFO,
     ANNOTATION_ADD,
     ANNOTATION_ADD_EVENTS,
     ANNOTATION_QUERY,

@@ -11,6 +11,92 @@
 #include <QScreen>
 #include "appconfigbase.h"
 #include <QVariant>
+#include"xlsxdocument.h"
+#include "xlsxformat.h"
+#include "xlsxcellrange.h"
+#include "xlsxchart.h"
+#include "xlsxworksheet.h"
+#include "QDebug"
+#include "xlsxworkbook.h"
+
+void exportRecordToExcel(QJsonArray jsonArray, QString filePath)
+{
+    QXlsx::Format titleFormat;
+    titleFormat.setFont(QFont(("宋体"),11));
+    titleFormat.setHorizontalAlignment(QXlsx::Format::AlignHCenter);//横向居中
+    titleFormat.setVerticalAlignment(QXlsx::Format::AlignVCenter);//纵向居中
+    titleFormat.setBorderStyle(QXlsx::Format::BorderThin);//边框样式
+
+    static QMutex m_mutex;
+    bool exportIsSuccess = false;
+    QXlsx::Document xlsx;
+
+    //写入表头
+    if (!jsonArray.isEmpty())  {
+        QJsonObject firstObj = jsonArray.first().toObject();
+        QStringList headers = firstObj.keys();
+
+        m_mutex.lock();
+        for(int i = 0; i < headers.size(); i++)
+        {
+            xlsx.write(1,i+1,headers[i],titleFormat);
+
+
+            if(headers[i] == "imageId" || headers[i] == "lat" || headers[i] == "lon")
+            {
+                xlsx.setColumnWidth(i+1,25);
+            }
+            else
+            {
+                xlsx.setColumnWidth(i+1,15);
+            }
+        }
+        m_mutex.unlock();
+    }
+
+    xlsx.selectSheet("Sheet1");
+
+    int index = 0;
+    for(auto dataObj : jsonArray)  {
+        QJsonObject currentObj = dataObj.toObject();
+        QStringList headers = currentObj.keys();
+        m_mutex.lock();
+        for(int i = 0; i < headers.size(); i++)
+        {
+            QString value = currentObj[headers[i]].toString();
+            if(headers[i] == "lat" || headers[i] == "lon")
+            {
+                value = QString::number(currentObj[headers[i]].toDouble(),'f',8);
+            }
+            else if(currentObj[headers[i]].isDouble())
+            {
+                value = QString::number(currentObj[headers[i]].toDouble());
+            }
+            xlsx.write(index+2,i+1,value,titleFormat);
+        }
+        m_mutex.unlock();
+        index++;
+    }
+
+    xlsx.renameSheet("Sheet1","record");
+
+    QString fileName =  QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss")+ ".xlsx";
+    if(!filePath.isEmpty())
+    {
+        fileName = filePath;
+    }
+    qDebug().noquote() << fileName;
+
+    //保存文件存在的话，删除
+    QFile file(fileName);
+    if(file.exists()) {
+        file.remove();
+    }
+
+    m_mutex.lock();
+    exportIsSuccess = xlsx.saveAs(fileName);
+    m_mutex.unlock();
+}
 
 void saveJsonArrayToCsv(QJsonArray jsonArray, QString filePath, QMap<QString,QString> dirctionMap)
 {
@@ -30,6 +116,14 @@ void saveJsonArrayToCsv(QJsonArray jsonArray, QString filePath, QMap<QString,QSt
     jsonArray = arrayTemp;
 
     qDebug() << "saveJsonArrayToCsv" << jsonArray << filePath;
+
+    //导出csv文件
+    if(1)
+    {
+        filePath.replace(".csv",".xlsx");//保存的文件后缀修改
+        exportRecordToExcel(jsonArray,filePath);
+        return;
+    }
 
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly  | QIODevice::Text)) {
@@ -278,7 +372,7 @@ void ExportBagPage::slt_startExport()
         qDebug() << "step" << radius << int(100*radius);
         if(ui->errorTip->text().isEmpty())
             ui->progressBar->setValue(100*radius);
-        QApplication::processEvents();
+        //QApplication::processEvents();
     },Qt::QueuedConnection);
 
     connect(downloader,&BatchDownloader::sig_sendAllHandleEvents,this,[=](QJsonArray array){

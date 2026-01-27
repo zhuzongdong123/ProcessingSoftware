@@ -2,6 +2,19 @@
 #include <QPointF>
 #include <QDebug>
 
+bool hasChineseCharacters(const QString& str) {
+    for (const QChar& ch : str) {
+        const ushort unicode = ch.unicode();
+        // 核心判断逻辑：汉字 Unicode 范围
+        if ((unicode >= 0x4E00 && unicode <= 0x9FFF) ||   // 基本汉字
+            (unicode >= 0x3400 && unicode <= 0x4DBF) ||   // 扩展A区
+            (unicode >= 0x20000 && unicode <= 0x2A6DF)) { // 扩展B区
+            return true;
+        }
+    }
+    return false;
+}
+
 QJsonArray DownloadTask::handleEvents()
 {
     qDebug() << "DownloadTask::handleEvents() start" << m_bagId << m_imageId;
@@ -29,7 +42,7 @@ QJsonArray DownloadTask::handleEvents()
     QNetworkReply* reply = m_manager.post(request,post_param);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(1000*10);  // 设置超时时间 3 秒
+    timer.setInterval(1000*30);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -52,7 +65,41 @@ QJsonArray DownloadTask::handleEvents()
                 QString imageId = data.toObject().value("image_id").toString();
                 QString strData = data.toObject().value("data").toString();
                 QJsonDocument doc = QJsonDocument::fromJson(strData.toUtf8());
+
+                //先获取投影数据
+                //获取bag文件的详情
+                QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+                QString urlTemp = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(imageId + ".jpg");
+                QNetworkRequest request(urlTemp);
+                QNetworkReply* reply = m_manager.get(request);
+                QEventLoop loop;
+                QTimer timer;
+                timer.setInterval(1000*30);  // 设置超时时间 3 秒
+                timer.setSingleShot(true);  // 单次触发
+                connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
+                connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+                connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
+                timer.start();
+                loop.exec();
+
+                if(reply->error() == QNetworkReply::NoError) {
+                    QByteArray readArray = reply->readAll();
+                    QString picArray = readArray;
+                    QByteArray decodedData = QByteArray::fromBase64(picArray.toLatin1());
+                    qDebug () << "投影数据获取完成";
+                }
+                else
+                {
+                    qDebug () << "投影数据获取失败";
+                }
+
                 auto eventArray = doc.array();
+
+                if(eventArray.size() == 0)
+                {
+                    qDebug() << "该图片没有事件" << m_bagId << m_imageId  << "zzdTemp";
+                }
+
                 for(auto event : eventArray)
                 {
                     double x1 = event.toObject().value("x1").toDouble();
@@ -60,9 +107,17 @@ QJsonArray DownloadTask::handleEvents()
                     double x2 = event.toObject().value("y1").toDouble();
                     double y2 = event.toObject().value("y2").toDouble();
                     //获取经纬度，
-                    qDebug() << "DownloadTask::getLonLatFromServer() start" << m_bagId << m_imageId << QPointF(x1,y1) << QPointF(x2,y2);
+                    qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz.ddd") << "DownloadTask::getLonLatFromServer() start" << m_bagId << m_imageId << QPointF(x1,y1) << QPointF(x2,y2);
                     QPointF lonlat = getLonLatFromServer(bagId,imageId,QPointF(x1,y1),QPointF(x2,y2));
-                    qDebug() << "DownloadTask::getLonLatFromServer() end" << m_bagId << m_imageId << lonlat;
+                    qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz.ddd") << "DownloadTask::getLonLatFromServer() end" << m_bagId << m_imageId << lonlat;
+
+                    //经纬度为0，不处理
+                    if(fabs(lonlat.x()) < 1e-5 && fabs(lonlat.y()) < 1e-5)
+                    {
+                        qDebug() << "当前事件不处理"  << "zzdTemp";
+                        continue;
+                    }
+
                     //获取尺寸
                     QString eventName = event.toObject().value("event_type").toString();
                     QString scale;
@@ -76,8 +131,9 @@ QJsonArray DownloadTask::handleEvents()
                     if(eventName == "lane_gap")
                         eventName = "标线缺损";
 
-                    if(!m_eventsSet.contains(eventName))
+                    if(!m_eventsSet.contains(eventName) && hasChineseCharacters(eventName))
                     {
+                        qDebug() << "当前事件不处理，未找到事件名称"  << "zzdTemp";
                         continue;
                     }
 
@@ -111,7 +167,7 @@ QJsonArray DownloadTask::handleEvents()
     }
     else
     {
-        qDebug() << "DownloadTask::handleEvents() error" << m_bagId << m_imageId;
+        qDebug() << "DownloadTask::handleEvents() error" << m_bagId << m_imageId  << "zzdTemp";
     }
     reply->deleteLater();
     qDebug() << "DownloadTask::handleEvents() end" << m_bagId << m_imageId;
@@ -153,7 +209,7 @@ QPointF DownloadTask::getLonLatFromServer(QString bagId, QString imageId, QPoint
     QNetworkReply* reply = m_manager.post(request,post_param);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(1000*10);  // 设置超时时间 3 秒
+    timer.setInterval(1000*60*10);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -171,10 +227,14 @@ QPointF DownloadTask::getLonLatFromServer(QString bagId, QString imageId, QPoint
        {
             returnResult = QPointF(arrayResult[0].toObject().value("lon").toDouble(),arrayResult[0].toObject().value("lat").toDouble());
        }
+       else
+       {
+            qDebug() << "经纬度结果获取失败" << obj << "zzdTemp";
+       }
     }
     else
     {
-        qDebug() << "error";
+        qDebug() << "getLonLatFromServer error" << "zzdTemp";
     }
     reply->deleteLater();
     return returnResult;
@@ -214,7 +274,7 @@ QString DownloadTask::getScaleFromServer(QString bagId, QString imageId, QPointF
     QNetworkReply* reply = m_manager.post(request,post_param);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(1000*10);  // 设置超时时间 3 秒
+    timer.setInterval(1000*60);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -233,7 +293,15 @@ QString DownloadTask::getScaleFromServer(QString bagId, QString imageId, QPointF
            {
                 returnResult = QString::number(arrayResult[0].toObject().value("scale").toDouble(),'f',1);
            }
+           else
+           {
+               qDebug() << "getScaleFromServer error" << "zzdTemp";
+           }
         }
+    }
+    else
+    {
+        qDebug() << "getScaleFromServer error" << "zzdTemp";
     }
     reply->deleteLater();
     return returnResult;

@@ -580,14 +580,16 @@ void DataManager::searchBagsList()
     QStringList folderPathList;
 
     QString folderPath = AppConfigBase::getInstance()->readConfigSettings("list","path","/home/sysadmin/Desktop/");
-    folderPathList.append(folderPath);//测试代码
+//    folderPathList.append(folderPath);//测试代码
     QVector<DataManager::RecordInfo> allBasMap;
-    for(auto folderPath : folderPathList)
-    {
-        QApplication::processEvents();
-        findAllBagByFolder(folderPath,allBasMap);
-        QApplication::processEvents();
-    }
+//    for(auto folderPath : folderPathList)
+//    {
+//        QApplication::processEvents();
+//        findAllBagByFolder(folderPath,allBasMap);
+//        QApplication::processEvents();
+//    }
+
+    findAllBagByFolderPath(folderPath,allBasMap);
 
     //显示到表格
     _recordInfoVec = allBasMap;
@@ -1050,6 +1052,67 @@ void DataManager::findAllBagByFolder(QString folderPath, QVector<DataManager::Re
         if(m_restFulApi.replyResultCheck(obj,reply))
         {
             QJsonArray array = obj.value("data").toObject().value("items").toArray();
+            for(auto itemObj : array)
+            {
+                QString type = itemObj.toObject().value("type").toString();
+                QString fileName = itemObj.toObject().value("name").toString();
+                if(type == "directory")
+                {
+                    QString path = itemObj.toObject().value("path").toString();
+                    findAllBagByFolder(path,allBasMap);
+                }
+                else if(type == "file" && fileName.endsWith(".bag"))
+                {
+                    RecordInfo info;
+
+                    qlonglong fileSize = itemObj.toObject().value("size").toVariant().toLongLong();
+                    info.memory = QString("%1G").arg(QString::number(fileSize/1024/1024/1024,'f',1));
+                    info.fileName = itemObj.toObject().value("name").toString();
+                    info.filePath = itemObj.toObject().value("path").toString();
+
+                    QDateTime date = QDateTime::fromString(itemObj.toObject().value("modified_time").toString(), Qt::ISODate);
+                    if(date.isValid())
+                    {
+                        info.createTime = date.toString("yyyy-MM-dd hh:mm:ss");
+                    }
+                    info.dataFrom = "服务器";
+                    QFileInfo fileInfo(info.filePath);
+                    info.fileGroup = fileInfo.dir().dirName();;
+                    allBasMap.push_back(info);
+                }
+            }
+        }
+    }
+    else
+    {
+        emit AppEventBase::getInstance()->sig_sendServerStatus(false);
+    }
+    reply->deleteLater();
+}
+
+void DataManager::findAllBagByFolderPath(QString folderPath, QVector<DataManager::RecordInfo> &allBasMap)
+{
+    QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
+    this->m_restFulApi.getPostData().clear();
+    this->m_restFulApi.getPostData().addQueryItem("path",folderPath);
+    QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_LIST_BAG_INFO,VisitType::GET,ReplyType::LIST_BAG_INFO);
+    QEventLoop loop;
+    QTimer timer;
+    timer.setInterval(10000);  // 设置超时时间 3 秒
+    timer.setSingleShot(true);  // 单次触发
+    connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
+    connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
+    timer.start();
+    loop.exec();
+
+    QStringList folderPathList;
+    if(reply->error()==QNetworkReply::NoError)
+    {
+        auto obj=QJsonDocument::fromJson(reply->readAll()).object();
+        if(m_restFulApi.replyResultCheck(obj,reply))
+        {
+            QJsonArray array = obj.value("data").toArray();
             for(auto itemObj : array)
             {
                 QString type = itemObj.toObject().value("type").toString();

@@ -21,6 +21,7 @@
 #include <QTimer>
 #include <QPixmap>
 #include "appconfigbase.h"
+#include <QApplication>
 
 //导出的信息
 struct ExportInfo
@@ -63,6 +64,7 @@ public:
             //图片无事件不处理
             if(returnArray.size() == 0)
             {
+                qDebug() << "没有事件处理 error " << m_bagId << m_imageId << m_imageUrl.url() << m_imageSavePath << "zzdTemp";
                 return;
             }
             else
@@ -74,54 +76,80 @@ public:
         //下载点云图片
         if(!m_pointsImageSavePath.isEmpty())
         {
-            qDebug () << "下载点云图 start" << m_pointsImageUrl.url() << m_pointsImageSavePath;
-            QNetworkRequest request(m_pointsImageUrl);
-            QNetworkReply* reply = m_manager.get(request);
-            QEventLoop loop;
-            QTimer timer;
-            timer.setInterval(1000*30);  // 设置超时时间 3 秒
-            timer.setSingleShot(true);  // 单次触发
-            connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
-            connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-            connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
-            timer.start();
-            loop.exec();
+            //下载的图片已经存在的时候
+            QFile fileTemp2(m_pointsImageSavePath);
+            if(!fileTemp2.exists())
+            {
+                qDebug () << "下载点云图 start" << m_pointsImageUrl.url() << m_pointsImageSavePath;
+                QNetworkRequest request(m_pointsImageUrl);
+                QNetworkReply* reply = m_manager.get(request);
+                QEventLoop loop;
+                QTimer timer;
+                timer.setInterval(1000*60);  // 设置超时时间 3 秒
+                timer.setSingleShot(true);  // 单次触发
+                connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
+                connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+                connect(reply, &QNetworkReply::finished, &timer, &QTimer::stop);
+                timer.start();
+                loop.exec();
 
-            if(reply->error() == QNetworkReply::NoError) {
-                QByteArray readArray = reply->readAll();
-                QString picArray = readArray;
-                QByteArray decodedData = QByteArray::fromBase64(picArray.toLatin1());
-                QImage image;
-                if (image.loadFromData(decodedData))  {
-                    bool result = image.save(m_pointsImageSavePath,  "jpg");
-                    if(!result)
+                if(reply->error() == QNetworkReply::NoError) {
+                    QByteArray readArray = reply->readAll();
+                    QString picArray = readArray;
+                    QByteArray decodedData = QByteArray::fromBase64(picArray.toLatin1());
+                    QImage image;
+                    if (image.loadFromData(decodedData))  {
+                        bool result = image.save(m_pointsImageSavePath,  "jpg");
+                        if(!result)
+                        {
+                            qDebug () << "下载点云图 error 图片保存失败" << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
+                        }
+                    }
+                    else
                     {
-                        qDebug () << "下载点云图 error 图片保存失败" << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
+                        auto temp =QJsonDocument::fromJson(readArray).object();
+                        qDebug () << "下载点云图 error 获取结果为非图片数据" << temp << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
                     }
                 }
                 else
                 {
-                    auto temp =QJsonDocument::fromJson(readArray).object();
-                    qDebug () << "下载点云图 error 获取结果为非图片数据" << temp << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
+                    qDebug () << "下载点云图 error 获取图片超时" << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
                 }
+                reply->deleteLater();
+                qDebug () << "下载点云图 end" << m_pointsImageSavePath;
             }
-            else
-            {
-                qDebug () << "下载点云图 error 获取图片超时" << m_pointsImageUrl.url() << m_pointsImageSavePath << "\n\n\n";
-            }
-            reply->deleteLater();
-            qDebug () << "下载点云图 end" << m_pointsImageSavePath;
         }
 
         //下载图片
         {
+            //下载的图片已经存在的时候
+            QFile fileTemp2(m_imageSavePath);
+            if(fileTemp2.exists())
+            {
+                emit sig_sendHandStatus(true);
+                return;
+            }
+
+
+            //检测图片是否已经提前下载
+            QString picPath = QApplication::applicationDirPath() + "/" + m_bagId + "/" + m_imageId + ".jpg";
+            QFile fileTemp(picPath);
+            if(fileTemp.exists())
+            {
+                bool result = QFile::copy(picPath,m_imageSavePath);
+                if (result)  {
+                    emit sig_sendHandStatus(true);
+                    return;
+                }
+            }
+
             qDebug () << "下载图片 start" << m_imageUrl;
             QNetworkRequest request(m_imageUrl);
             QNetworkReply* reply = m_manager.get(request);
 
             QEventLoop loop;
             QTimer timer;
-            timer.setInterval(15000);  // 设置超时时间 3 秒
+            timer.setInterval(1000*60);  // 设置超时时间 3 秒
             timer.setSingleShot(true);  // 单次触发
             connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
             connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);

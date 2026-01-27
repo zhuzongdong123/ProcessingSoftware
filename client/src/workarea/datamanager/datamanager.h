@@ -119,6 +119,7 @@ private:
     void downLoadData(QString id);
 
     void findAllBagByFolder(QString folderPath, QVector<RecordInfo>& allBasMap);
+    void findAllBagByFolderPath(QString folderPath, QVector<RecordInfo>& allBasMap);
 
     void displayTable();
 

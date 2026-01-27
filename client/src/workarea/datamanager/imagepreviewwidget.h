@@ -231,6 +231,7 @@ signals:
     void sig_cancleRangingSelected();
     void sig_preImageBtnClicked();
     void sig_nextImageBtnClicked();
+    void sig_coordinatePickingBtnClicked();
 
 protected:
     void wheelEvent(QWheelEvent *event) override;

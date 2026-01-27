@@ -1,6 +1,14 @@
 ﻿#include <QApplication>
 #include "loginwidget.h"
 #include <QProcess>
+#include"xlsxdocument.h"
+#include "xlsxformat.h"
+#include "xlsxcellrange.h"
+#include "xlsxchart.h"
+#include "xlsxworksheet.h"
+#include "QDebug"
+#include "xlsxworkbook.h"
+
 bool checkTrialPeriod() {
     QSettings settings("sdgs", "ProcessingSoftWare");
 

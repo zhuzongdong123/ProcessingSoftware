@@ -1,5 +1,6 @@
 include(httpVisit/httpVisit.pri)
 include(systemmessage/systemmessage.pri)
+include(xlsx/qtxlsx.pri)
 
 HEADERS += \
     $$PWD/base/batchdownloader.h \

@@ -69,6 +69,10 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_nextImageBtnClicked,this,[=](){
         turn2NextImage();
     });
+    connect(ui->imagePreviewWidget,&ImagePreviewWidget::sig_coordinatePickingBtnClicked,this,[=](){
+        ui->coordinatePickingBtn->setChecked(!ui->coordinatePickingBtn->isChecked());
+        ui->coordinatePickingBtn->clicked();
+    });
 
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接

@@ -1410,7 +1410,7 @@ color: rgb(51, 51, 51);border-radius:4px</string>
                    <item>
                     <widget class="QPushButton" name="pushButton_4">
                      <property name="toolTip">
-                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、还原视图(快捷键ctrl+数字键0)：可将放大缩小后的当前图片一键还原到最初形态。&lt;/p&gt;&lt;p&gt;2、一键清屏：可将当前图片中的所有事件清空；&lt;/p&gt;&lt;p&gt;3、添加标记：可人工设置图片为已标记；&lt;/p&gt;&lt;p&gt;4、删除标记：可人工设置图片取消标记；&lt;/p&gt;&lt;p&gt;5、坐标拾取：可将图片中某个像素点的经纬度坐标提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;6、测距：可将图片中两个像素点的实际距离提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;7、上一张(快捷键A)，可切换上一张图片；&lt;/p&gt;&lt;p&gt;8、下一张(快捷键D)，可切换下一张图片；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1、还原视图(快捷键ctrl+数字键0)：可将放大缩小后的当前图片一键还原到最初形态。&lt;/p&gt;&lt;p&gt;2、一键清屏：可将当前图片中的所有事件清空；&lt;/p&gt;&lt;p&gt;3、添加标记：可人工设置图片为已标记；&lt;/p&gt;&lt;p&gt;4、删除标记：可人工设置图片取消标记；&lt;/p&gt;&lt;p&gt;5、坐标拾取(快捷键Q)：可将图片中某个像素点的经纬度坐标提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;6、测距：可将图片中两个像素点的实际距离提取出来(备注：点云图的位置有参考意义)；&lt;/p&gt;&lt;p&gt;7、上一张(快捷键A)，可切换上一张图片；&lt;/p&gt;&lt;p&gt;8、下一张(快捷键D)，可切换下一张图片；&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                      </property>
                      <property name="styleSheet">
                       <string notr="true">border:none;</string>
