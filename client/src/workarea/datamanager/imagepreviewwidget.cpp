@@ -508,6 +508,7 @@ bool ImagePreviewWidget::isPointInImage(const QPointF &scenePos) const
 
 void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
 {
+    static bool isClicked = false;
     // 确保是数字键盘的0键
     if (event->key() == Qt::Key_0 &&
         (event->modifiers() & Qt::KeypadModifier) &&
@@ -525,11 +526,22 @@ void ImagePreviewWidget::handleKeyPress(QKeyEvent *event)
     }
     //上一张
     else if(event->key() == Qt::Key_A) {
-        emit sig_preImageBtnClicked();
+        //触发太快的话，容易界面卡死
+        if(!isClicked)
+        {
+            emit sig_preImageBtnClicked();
+            isClicked = true;
+            QTimer::singleShot(300, this, [this]() {isClicked = false;});
+        }
     }
     //上一张
     else if(event->key() == Qt::Key_D) {
-        emit sig_nextImageBtnClicked();
+        if(!isClicked)
+        {
+            emit sig_nextImageBtnClicked();
+            isClicked = true;
+            QTimer::singleShot(300, this, [this]() {isClicked = false;});
+        }
     }
     //坐标选取
     else if(event->key() == Qt::Key_Q) {
@@ -1079,7 +1091,7 @@ QPointF ImagePreviewWidget::getLonLatFromServer(QPointF pos)
 
         QEventLoop loop;
         QTimer timer;
-        timer.setInterval(3000);  // 设置超时时间 3 秒
+        timer.setInterval(20000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
         connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1134,7 +1146,7 @@ QString ImagePreviewWidget::getScaleFromServer(QPointF pos1,QPointF pos2)
 
         QEventLoop loop;
         QTimer timer;
-        timer.setInterval(3000);  // 设置超时时间 3 秒
+        timer.setInterval(20000);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
         connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);

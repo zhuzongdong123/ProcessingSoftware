@@ -428,7 +428,7 @@ background-color: rgb(38, 46, 53);</string>
                 <item>
                  <widget class="QCheckBox" name="checkBox_2">
                   <property name="text">
-                   <string>伸缩</string>
+                   <string>伸缩缝</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>

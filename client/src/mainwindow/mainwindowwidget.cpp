@@ -119,8 +119,22 @@ bool MainWindowWidget::createDBTable(QString tableName)
         sNameList << "id" << "bag_id" << "opt_sentry_id" << "status" << "opt_time";
         sType << "varchar(36)" << "varchar(36)" << "varchar(36)" << "varchar(1)" << "varchar(20)";
     }
+    //下载记录表
+    else if(tableName == "download_record")
+    {
+        sNameList << "id" << "bag_id" << "bag_name" << "start_time" << "end_time" << "step" << "status" << "type";
+        sType << "varchar(36)" << "varchar(36)" << "varchar(256)" << "varchar(36)" << "varchar(36)" << "varchar(10)" << "varchar(1)" << "varchar(1)";
+    }
+    //下载记录表
+    else if(tableName == "download_task_detail")
+    {
+        sNameList << "id" << "downloand_id" << "status" << "num";
+        sType << "varchar(36)" << "varchar(36)" << "varchar(36)";
+    }
     else
         return false;
 
     MySqlite::getInstance()->initTable(tableName,sNameList,sType);
+
+    return true;
 }

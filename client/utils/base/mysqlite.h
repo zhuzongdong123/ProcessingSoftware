@@ -6,6 +6,8 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QSqlRecord>
+#include <QMutex>
+#include <QMutexLocker>
 
 class MySqlite : public QObject
 {
@@ -108,6 +110,7 @@ private:
 
 private:
     QSqlDatabase m_db;
+    QMutex m_mutex;
 };
 
 #endif // MYSQLITE_H

@@ -2,6 +2,44 @@
 #include <QPointF>
 #include <QDebug>
 
+
+// 头文件声明
+#include <QMap>
+#include <QString>
+
+// 全局静态映射
+static QMap<QString, QString> en2cMapping;
+
+// 初始化函数
+void initEn2CMapping() {
+    en2cMapping["pit"] = "坑槽";
+    en2cMapping["litter"] = "洒落物";
+    en2cMapping["strip_patch"] = "修补";
+    en2cMapping["lane_gap"] = "标线缺损";
+    en2cMapping["expansion_gap"] = "伸缩缝";
+    en2cMapping["signboard"] = "标志牌";
+    en2cMapping["hundred_pile"] = "百米桩";
+    en2cMapping["km_pile"] = "公里桩";
+    en2cMapping["yellow_circle_outline"] = "轮廓标";
+    en2cMapping["unglare_plate"] = "防眩板";
+}
+
+// 使用示例
+QString getChineseTranslation(const QString& english) {
+    if(en2cMapping.size() == 0)
+        initEn2CMapping();
+
+    if(en2cMapping.find(english) != en2cMapping.end())
+    {
+        return en2cMapping.find(english).value();
+    }
+    else
+    {
+        return english;
+    }
+}
+
+
 bool hasChineseCharacters(const QString& str) {
     for (const QChar& ch : str) {
         const ushort unicode = ch.unicode();
@@ -122,18 +160,12 @@ QJsonArray DownloadTask::handleEvents()
                     QString eventName = event.toObject().value("event_type").toString();
                     QString scale;
 
-                    if(eventName == "pit")
-                        eventName = "坑槽";
-                    if(eventName == "litter")
-                        eventName = "洒落物";
-                    if(eventName == "strip_patch")
-                        eventName = "修补";
-                    if(eventName == "lane_gap")
-                        eventName = "标线缺损";
+                    //英文名称转换成中文名称
+                    eventName = getChineseTranslation(eventName);
 
                     if(!m_eventsSet.contains(eventName) && hasChineseCharacters(eventName))
                     {
-                        qDebug() << "当前事件不处理，未找到事件名称"  << "zzdTemp";
+                        qDebug() << "当前事件不处理，未找到事件名称"  << "zzdTemp" << eventName;
                         continue;
                     }
 

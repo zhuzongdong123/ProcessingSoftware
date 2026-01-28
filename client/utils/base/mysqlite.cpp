@@ -27,6 +27,8 @@ MySqlite::~MySqlite()
 
 bool MySqlite::createDB(QString DBName)
 {
+    QMutexLocker locker(&m_mutex);
+
     QString path = QDir::currentPath();
     QApplication::addLibraryPath(path);
     QPluginLoader loader(path+QString("/sqldrivers/qsqlite.dll"));
@@ -64,6 +66,7 @@ bool MySqlite::createDB(QString DBName)
 
 bool MySqlite::deleteDB(QString DBName)
 {
+    QMutexLocker locker(&m_mutex);
     if(m_db.open() && m_db.databaseName() != DBName)
     {
         //关闭数据库
@@ -81,6 +84,7 @@ bool MySqlite::deleteDB(QString DBName)
 
 bool MySqlite::initTable(QString sTableName, QStringList sNameList, QStringList sType)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -135,6 +139,7 @@ bool MySqlite::initTable(QString sTableName, QStringList sNameList, QStringList 
 
 bool MySqlite::insertDataForBase(QString sTableName, QMap<QString, QString> data, bool isOpenTransaction)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -189,6 +194,7 @@ bool MySqlite::insertDataForBase(QString sTableName, QMap<QString, QString> data
 
 bool MySqlite::insertDatasForBase(QString sTableName, QStringList sNameList, QVector<QVariantList> datas, bool isOpenTransaction)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -254,6 +260,7 @@ bool MySqlite::insertDatasForBase(QString sTableName, QStringList sNameList, QVe
 
 bool MySqlite::deleteDataFromTable(QString sTableName, QString queryCondition)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -292,6 +299,7 @@ bool MySqlite::deleteDataFromTable(QString sTableName, QString queryCondition)
 
 bool MySqlite::clearTable(QString sTableName,bool isOpenTransaction)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -332,6 +340,7 @@ bool MySqlite::clearTable(QString sTableName,bool isOpenTransaction)
 
 bool MySqlite::updateDataForBase(QString sTableName, QStringList sDataList, int index)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -340,6 +349,7 @@ bool MySqlite::updateDataForBase(QString sTableName, QStringList sDataList, int 
 
 bool MySqlite::queryDataForBase(QString sTableName, QSqlQuery& queryResult,  QList<QString> keyList, QMap<QString, QString> whereMap, bool isSelectOnce)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -442,6 +452,7 @@ bool MySqlite::queryDataForBase(QString sTableName, QSqlQuery& queryResult,  QLi
 
 bool MySqlite::execSQL(QSqlQuery &queryResult, QString sql)
 {
+    QMutexLocker locker(&m_mutex);
     if(!m_db.isOpen())
         return false;
 
@@ -466,5 +477,6 @@ bool MySqlite::execSQL(QSqlQuery &queryResult, QString sql)
 
 QSqlDatabase &MySqlite::getDB()
 {
+    QMutexLocker locker(&m_mutex);
     return m_db;
 }
