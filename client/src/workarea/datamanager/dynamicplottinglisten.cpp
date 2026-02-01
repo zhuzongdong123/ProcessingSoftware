@@ -81,10 +81,11 @@ void DynamicPlottingListen::slt_rcvPlottingResult(QJsonObject obj)
             QString imageId = obj.value("image_name").toString().replace(".jpg","");
             emit sig_sendPlottingResult(m_bagId,imageId,obj);
 
-
             //保存处理结果到数据库中
-            saveDataToServer(m_bagId,imageId,obj);
-
+            if(!m_bagId.isEmpty() && !imageId.isEmpty())
+            {
+                saveDataToServer(m_bagId,imageId,obj);
+            }
             qDebug() << "智能标绘结果：" << obj;
         }
     }
@@ -116,20 +117,6 @@ void DynamicPlottingListen::saveDataToServer(QString bagId, QString imageId, QJs
     }
     if(dataArrayTemp.size() == 0)
         return;
-
-//    QString requestUrl = AppDatabaseBase::getInstance()->getBusinessServerUrl();
-//    this->m_restFulApi.getPostData().clear();
-//    QJsonObject post_data;
-//    QJsonDocument document;
-//    QByteArray post_param;
-//    post_data.insert("data",dataArrayTemp);//标绘的数据
-//    post_data.insert("bag_id",bagId);
-//    post_data.insert("image_id",imageId);
-//    document.setObject(post_data);
-//    post_param = document.toJson(QJsonDocument::Compact);
-//    m_restFulApi.visitUrl(requestUrl + API_ANNOTATION_ADD_PLOTTING_EVENTS,
-//                          VisitType::POST,ReplyType::ANNOTATION_ADD_PLOTTING_EVENTS,"application/json",post_param,true);
-
 
     //防止万一，存入本地数据库一份
     QSqlQuery queryResult;
