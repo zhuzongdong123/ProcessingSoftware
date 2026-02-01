@@ -1,4 +1,5 @@
 include(httpVisit/httpVisit.pri)
+include(httpserver/httpserver.pri)
 include(systemmessage/systemmessage.pri)
 include(xlsx/qtxlsx.pri)
 
@@ -10,7 +11,8 @@ HEADERS += \
     $$PWD/base/myscrollarea.h \
     $$PWD/base/mysqlite.h \
     $$PWD/base/scaletextitem.h \
-    $$PWD/base/widgetbase.h
+    $$PWD/base/widgetbase.h \
+    $$PWD/downloadmanager/downloadmanger.h
 
 SOURCES += \
     $$PWD/base/batchdownloader.cpp \
@@ -20,10 +22,12 @@ SOURCES += \
     $$PWD/base/myscrollarea.cpp \
     $$PWD/base/mysqlite.cpp \
     $$PWD/base/scaletextitem.cpp \
-    $$PWD/base/widgetbase.cpp
+    $$PWD/base/widgetbase.cpp \
+    $$PWD/downloadmanager/downloadmanger.cpp
 
 INCLUDEPATH += $$PWD
 INCLUDEPATH += $$PWD/base
+INCLUDEPATH += $$PWD/httpserver
 
 FORMS += \
     $$PWD/base/gridlayout.ui

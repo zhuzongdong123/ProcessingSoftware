@@ -167,6 +167,7 @@ public:
 
     explicit ImagePreviewWidget(QWidget *parent = nullptr);
     void loadImage(const QString& path);
+    void setBagId(QString bagId);
 
     // 标注功能控制
     void setDrawEnabled(bool enabled);
@@ -247,6 +248,7 @@ protected:
 
 private slots:
     void slt_requestFinishedSlot(QNetworkReply *networkReply);
+    void slt_rcvPlottingResult(QString bagId,QString imageId,QJsonObject result);
 
 private:
     // 坐标转换系统
@@ -291,6 +293,7 @@ private:
     // 图片原始尺寸
     QSize m_imageSize;
     QString m_imageKey;
+    QString m_bagId;
 
     ExtendedKeyMapper m_extendedKeyMapper;//键值对映射
     QPixmap m_pointPixmap;//点云图片

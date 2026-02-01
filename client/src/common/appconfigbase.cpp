@@ -62,6 +62,7 @@ void AppConfigBase::readConfig(QString path)
     updateConfigSetting("server","port_business",QString::number(8083));
     updateConfigSetting("server","port_bag",QString::number(8898));
     updateConfigSetting("list","path","/home/sysadmin/Desktop/");
+    updateConfigSetting("yoloListen","port","8899");
 }
 
 void AppConfigBase::readCameraConfig(QString path)

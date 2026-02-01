@@ -9,7 +9,7 @@
 #include <QDir>
 #include <QDebug>
 #include "appcommonbase.h"
-
+#include "dynamicplottinglisten.h"
 #include <QPropertyAnimation>
 
 void scrollToWidgetWithAnimation(QScrollArea* scrollArea, QWidget* widget, int duration = 100)
@@ -74,10 +74,13 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
         ui->coordinatePickingBtn->clicked();
     });
 
+    //智能标绘
+    connect(ui->dynamicPlottingBtn,&QPushButton::clicked,this,[=](){
+       slt_dynamicPlottingBtn();
+    });
+
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
-
-    ui->pushButton->hide();
 }
 
 AnnotationDataPage::~AnnotationDataPage()
@@ -89,6 +92,7 @@ void AnnotationDataPage::setBagId(QString id)
 {
     AppCommonBase::getInstance()->g_isShowImage = true;
     m_bagId = id;
+    ui->imagePreviewWidget->setBagId(id);
     ui->girdlayout->clearAll();
     m_currentSelectWidget = nullptr;
     ui->imagePreviewWidget->loadImage(QPixmap(),"");
@@ -467,6 +471,9 @@ void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
     QString loadFilePath = filePath;
     QPixmap currentPicture(loadFilePath);
     QString key = QString("%1-%2").arg(obj.value("bag_id").toString()).arg(obj.value("image_id").toString());
+
+    ui->imageId->setText("图片标识：" + obj.value("image_id").toString());
+
     if(!currentPicture.isNull())
     {
         ui->imagePreviewWidget->loadImage(currentPicture,key);
@@ -592,6 +599,73 @@ void AnnotationDataPage::slt_btnClicked()
             {
                 ui->imagePreviewWidget->setDrawType(ImagePreviewWidget::DRAW_TYPE::unkonwn);
             }
+        }
+    }
+}
+
+void AnnotationDataPage::slt_dynamicPlottingBtn()
+{
+    if(DynamicPlottingListen::getInstance()->getRunningFlag())
+    {
+        TipsDlgView* dlg = new TipsDlgView("标绘中，请稍后重试", nullptr);
+        dlg->startTimer(5000);
+        dlg->show();
+        return;
+    }
+
+    QString folderPath = QApplication::applicationDirPath() + "/" + m_bagId;
+    QFileInfo folderInfo(folderPath);
+    if(folderInfo.exists() && folderInfo.isDir())
+    {
+        //从业务数据库中获取所有的事件
+        QString requestUrl = "http://127.0.0.1:8000/process_folder";
+        this->m_restFulApi.getPostData().clear();
+        QJsonObject post_data;
+        QJsonDocument document;
+        QByteArray post_param;
+        post_data.insert("folder_path",folderPath);
+        post_data.insert("workers",1);
+        post_data.insert("recursive",false);
+        //post_data.insert("request_id",m_bagId);
+        qDebug() << "智能标绘请求数据" << post_data;
+        document.setObject(post_data);
+        post_param = document.toJson(QJsonDocument::Compact);
+        QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl,
+                              VisitType::POST,ReplyType::dynamicPlotting,"application/json",post_param,true,1000*40);//40秒超时
+
+        //添加遮罩
+        m_mask.insertMask(this,"background-color:rgb(26,39,34,150)",0.5,"智能标绘请求中...");
+        QEventLoop loop;
+        connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        m_mask.deleteMask(this);
+        QJsonObject returnObj;
+        QStringList requestUrlList;
+        if(reply->error()==QNetworkReply::NoError)
+        {
+            auto obj=QJsonDocument::fromJson(reply->readAll()).object();
+            if(obj.value("status").toString() == "received")
+            {
+                DynamicPlottingListen::getInstance()->setBagId(m_bagId);
+                TipsDlgView* dlg = new TipsDlgView("智能标绘启动成功", nullptr);
+                dlg->startTimer(3000);
+                dlg->show(true);
+            }
+            else
+            {
+                DynamicPlottingListen::getInstance()->setBagId("");
+                TipsDlgView* dlg = new TipsDlgView("智能标绘启动失败", nullptr);
+                dlg->startTimer(3000);
+                dlg->show();
+            }
+        }
+        else
+        {
+            DynamicPlottingListen::getInstance()->setBagId("");
+            TipsDlgView* dlg = new TipsDlgView("智能标绘服务连接超时", nullptr);
+            dlg->startTimer(3000);
+            dlg->show();
         }
     }
 }

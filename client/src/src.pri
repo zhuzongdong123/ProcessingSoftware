@@ -22,6 +22,7 @@ HEADERS += \
     $$PWD/mainwindow/mainwindowwidget.h \
     $$PWD/menubar/menubar.h \
     $$PWD/titlebar/titlebar.h \
+    $$PWD/workarea/datamanager/dynamicplottinglisten.h \
     $$PWD/workarea/datamanager/exportbagpage.h \
     $$PWD/workarea/datamanager/imagepreviewwidget.h \
     $$PWD/workarea/datamanager/progressbar.h \
@@ -40,6 +41,7 @@ SOURCES += \
     $$PWD/mainwindow/mainwindowwidget.cpp \
     $$PWD/menubar/menubar.cpp \
     $$PWD/titlebar/titlebar.cpp \
+    $$PWD/workarea/datamanager/dynamicplottinglisten.cpp \
     $$PWD/workarea/datamanager/exportbagpage.cpp \
     $$PWD/workarea/datamanager/imagepreviewwidget.cpp \
     $$PWD/workarea/datamanager/progressbar.cpp \

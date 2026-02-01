@@ -39,6 +39,10 @@ int main(int argc, char *argv[])
 //        return -1; // 退出程序
 //    }
 
+    // 设置环境变量（必须在创建QNetworkAccessManager之前）
+    qputenv("QT_NETWORK_CONNECTION_LIMIT", "200");       // 全局最大连接数
+    qputenv("QT_NETWORK_CONNECTION_LIMIT_PER_HOST", "20"); // 每个主机的最大连接数
+
     LoginWidget w;
     w.show();
     return a.exec();

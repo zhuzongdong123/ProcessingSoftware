@@ -2,6 +2,7 @@
 #include "ui_mainwindowwidget.h"
 #include "annotationdatapage.h"
 #include "mysqlite.h"
+#include "downloadmanager/downloadmanger.h"
 
 MainWindowWidget::MainWindowWidget(QWidget *parent) :
     QWidget(parent),
@@ -13,8 +14,9 @@ MainWindowWidget::MainWindowWidget(QWidget *parent) :
     createConnect();
 
     //创建数据库
-    MySqlite::getInstance()->createDB(QApplication::applicationDirPath() + "/" + QApplication::applicationName());
     createDBTable("annotation_record");
+    createDBTable("download_record");
+    createDBTable("plotting_record");
 }
 
 MainWindowWidget::~MainWindowWidget()
@@ -125,11 +127,17 @@ bool MainWindowWidget::createDBTable(QString tableName)
         sNameList << "id" << "bag_id" << "bag_name" << "start_time" << "end_time" << "step" << "status" << "type";
         sType << "varchar(36)" << "varchar(36)" << "varchar(256)" << "varchar(36)" << "varchar(36)" << "varchar(10)" << "varchar(1)" << "varchar(1)";
     }
-    //下载记录表
+    //下载记录明细表
     else if(tableName == "download_task_detail")
     {
         sNameList << "id" << "downloand_id" << "status" << "num";
         sType << "varchar(36)" << "varchar(36)" << "varchar(36)";
+    }
+    //智能标绘记录表
+    else if(tableName == "plotting_record")
+    {
+        sNameList << "id" << "bag_id" << "image_id" << "data" << "isSyn";
+        sType << "varchar(36)" << "varchar(36)" << "varchar(36)" << "text" << "varchar(1)";
     }
     else
         return false;

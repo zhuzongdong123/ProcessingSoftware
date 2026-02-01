@@ -85,7 +85,7 @@ public:
                 QNetworkReply* reply = m_manager.get(request);
                 QEventLoop loop;
                 QTimer timer;
-                timer.setInterval(1000*60);  // 设置超时时间 3 秒
+                timer.setInterval(1000*120);  // 设置超时时间 3 秒
                 timer.setSingleShot(true);  // 单次触发
                 connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
                 connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -149,7 +149,7 @@ public:
 
             QEventLoop loop;
             QTimer timer;
-            timer.setInterval(1000*60);  // 设置超时时间 3 秒
+            timer.setInterval(1000*120);  // 设置超时时间 3 秒
             timer.setSingleShot(true);  // 单次触发
             connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
             connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);

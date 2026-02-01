@@ -101,6 +101,7 @@ private slots:
     void slt_mousePressedImage(QJsonObject obj);
     void slt_watcherFinished();
     void slt_btnClicked();
+    void slt_dynamicPlottingBtn();
 };
 
 #endif // ANNOTATIONDATAPAGE_H

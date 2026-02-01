@@ -32,6 +32,8 @@
 #define API_ANNOTATION_QUERY "/controller/annotation/record/query"
 //事件插入
 #define API_ANNOTATION_ADD_EVENTS "/controller/annotation/record/addEvent"
+//添加智能标绘事件
+#define API_ANNOTATION_ADD_PLOTTING_EVENTS "/controller/annotation/record/addPlottingEvent"
 //事件获取
 #define API_ANNOTATION_QUERY_EVENTS "/controller/annotation/record/queryEvent"
 
@@ -101,6 +103,7 @@ enum ReplyType
     LIST_BAG_INFO,
     ANNOTATION_ADD,
     ANNOTATION_ADD_EVENTS,
+    ANNOTATION_ADD_PLOTTING_EVENTS,
     ANNOTATION_QUERY,
     ANNOTATION_QUERY_EVENTS,
     EVENT_CALC_LATLON_GET,
@@ -108,6 +111,7 @@ enum ReplyType
     PARAMETER_GET,
     parase_bags,
     ORIENTATION,
+    dynamicPlotting,
 };
 
 enum class VisitType

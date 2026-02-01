@@ -9,6 +9,9 @@
 #include "appdatabasebase.h"
 #include "appconfigbase.h"
 #include "tipsdlgviewForSure.h"
+#include "httpserver.h"
+#include "dynamicplottinglisten.h"
+#include "mysqlite.h"
  
 LoginWidget::LoginWidget(QWidget *parent) : 
     QWidget(parent), 
@@ -44,6 +47,14 @@ LoginWidget::LoginWidget(QWidget *parent) :
 
     //读取配置文件
     AppConfigBase::getInstance()->readConfig();
+    AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
+    AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
+    AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
+    AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
+
+    HttpServer::getInstance()->initializeHttpServer();
+    connect(HttpServer::getInstance(),&HttpServer::sig_sendRcvmsg,DynamicPlottingListen::getInstance(),&DynamicPlottingListen::slt_rcvPlottingResult,Qt::QueuedConnection);
+    MySqlite::getInstance()->createDB(QApplication::applicationDirPath() + "/" + QApplication::applicationName());
 } 
  
 LoginWidget::~LoginWidget() 

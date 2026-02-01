@@ -9,6 +9,7 @@
 #include "appdatabasebase.h"
 #include <QtMath>  // 需要包含此头文件
 #include <QFileInfo>
+#include "dynamicplottinglisten.h"
 static int originalFontSize = 50;
 static QMap<QString, QList<ImagePreviewWidget::STU_Annotation>> g_allImageCache;
 int resetY = 80;
@@ -50,6 +51,7 @@ ImagePreviewWidget::ImagePreviewWidget(QWidget *parent)
     : QGraphicsView(parent)
 {
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &ImagePreviewWidget::slt_requestFinishedSlot);
+    connect(DynamicPlottingListen::getInstance(), &DynamicPlottingListen::sig_sendPlottingResult, this, &ImagePreviewWidget::slt_rcvPlottingResult);
     // 场景设置
     QGraphicsScene *scene = new QGraphicsScene(this);
     setScene(scene);
@@ -171,6 +173,60 @@ void ImagePreviewWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
 
 }
 
+void ImagePreviewWidget::slt_rcvPlottingResult(QString bagId, QString imageId, QJsonObject result)
+{
+    QString currentBagId;
+    if(m_imageKey.split("-").size() == 2)
+    {
+        currentBagId = m_imageKey.split("-")[0];
+    }
+
+    //是当前的bag文件的标绘结果的话
+    if(bagId == m_bagId && isVisible() && result.value("detections").toArray().size() > 0)
+    {
+        QString keyTemp = bagId + "-" + imageId;
+        //找不到的话
+        if(g_allImageCache.find(keyTemp) == g_allImageCache.end())
+        {
+            QList<ImagePreviewWidget::STU_Annotation> list;
+            for(auto annotation : result.value("detections").toArray()) {
+                if(annotation.toObject().value("bbox").toArray().size() != 4)
+                    continue;
+
+                QPoint topLeft = QPoint(annotation.toObject().value("bbox").toArray()[0].toInt(),annotation.toObject().value("bbox").toArray()[1].toInt());
+                QPoint bottomRight = QPoint(annotation.toObject().value("bbox").toArray()[2].toInt(),annotation.toObject().value("bbox").toArray()[3].toInt());
+                QRectF rect = QRect(topLeft,bottomRight);
+                QString text = annotation.toObject().value("label").toString();
+                STU_Annotation stuAnnotation;
+                stuAnnotation.rect = rect;
+                stuAnnotation.text = text;
+                list.push_back(stuAnnotation);
+            }
+            g_allImageCache.insert(keyTemp,list);
+        }
+        else
+        {
+            QList<ImagePreviewWidget::STU_Annotation> list = g_allImageCache.find(keyTemp).value();
+            {
+                for(auto annotation : result.value("detections").toArray()) {
+                    if(annotation.toObject().value("bbox").toArray().size() != 4)
+                        continue;
+
+                    QPoint topLeft = QPoint(annotation.toObject().value("bbox").toArray()[0].toInt(),annotation.toObject().value("bbox").toArray()[1].toInt());
+                    QPoint bottomRight = QPoint(annotation.toObject().value("bbox").toArray()[2].toInt(),annotation.toObject().value("bbox").toArray()[3].toInt());
+                    QRectF rect = QRect(topLeft,bottomRight);
+                    QString text = annotation.toObject().value("label").toString();
+                    STU_Annotation stuAnnotation;
+                    stuAnnotation.rect = rect;
+                    stuAnnotation.text = text;
+                    list.push_back(stuAnnotation);
+                }
+            }
+            g_allImageCache.find(keyTemp).value() = list;
+        }
+    }
+}
+
 void ImagePreviewWidget::loadImage(const QString &path)
 {
     QPixmap pixmap(path);
@@ -195,6 +251,11 @@ void ImagePreviewWidget::loadImage(const QString &path)
     }
     m_rectAnnotations.clear();
     m_currentAnnotation = nullptr;
+}
+
+void ImagePreviewWidget::setBagId(QString bagId)
+{
+    m_bagId = bagId;
 }
 
 void ImagePreviewWidget::loadImage(QPixmap pixmap, QString key)

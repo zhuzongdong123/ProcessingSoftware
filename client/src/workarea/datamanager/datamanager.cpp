@@ -9,6 +9,7 @@
 #include "exportbagpage.h"
 #include "appconfigbase.h"
 #include "appcommonbase.h"
+#include "downloadmanager/downloadmanger.h"
 
 QString value2AnnotationName(QString value)
 {
@@ -40,6 +41,7 @@ DataManager::DataManager(QWidget *parent) :
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &DataManager::slt_requestFinishedSlot);
     connect(ui->refreshBtn, &QPushButton::clicked, this, &DataManager::slt_refreshTableData);
     connect(ui->exportBtn, &QPushButton::clicked, this, &DataManager::slt_exportTableData);
+    connect(DownLoadManger::getInstance(),&DownLoadManger::sig_sendDownLoadStep,this,&DataManager::slt_updateTableData);
 
     QTimer* timer = new QTimer(this);
     connect(timer,&QTimer::timeout,this,[=](){
@@ -48,6 +50,9 @@ DataManager::DataManager(QWidget *parent) :
     timer->start(2500);
 
     ui->inportBtn->hide();
+
+    //下载管理器初始化
+    DownLoadManger::getInstance();
 }
 
 DataManager::~DataManager()
@@ -399,6 +404,7 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
 
                     ExportInfo info;
+                    info.bagId = bagId;
                     info.image_url = requestUrl + QString(API_IMAGE_DETIAL_GET).arg(bagId).arg(filePath);
                     info.image_savePath = QString("%1/%2").arg(dirPath).arg(filePath);
                     QString downloadPointsImage = AppConfigBase::getInstance()->readConfigSettings("list","downloadPointsImage","1");
@@ -422,32 +428,38 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
                     tasks.append(info);
                 }
 
-                // 2. 创建下载器实例
-                BatchDownloader *downloader = new BatchDownloader;
-                connect(downloader,&BatchDownloader::sig_save2LoacalStep,this,[=](int current, int total){
-                   m_progressBar.setSaveStep(double(current)/double(total));
-                },Qt::QueuedConnection);
+//                // 2. 创建下载器实例
+//                BatchDownloader *downloader = new BatchDownloader;
+//                connect(downloader,&BatchDownloader::sig_save2LoacalStep,this,[=](int current, int total){
+//                   m_progressBar.setSaveStep(double(current)/double(total));
+//                },Qt::QueuedConnection);
 
-                connect(downloader,&BatchDownloader::sig_allHandlefinished,this,[=](){
-                    m_progressBar.setSaveStep(1);
-                    m_progressBar.startStep4();
-                   downloader->deleteLater();
-                   slt_refreshTableData();
-                },Qt::QueuedConnection);
+//                connect(downloader,&BatchDownloader::sig_allHandlefinished,this,[=](){
+//                    m_progressBar.setSaveStep(1);
+//                    m_progressBar.startStep4();
+//                   downloader->deleteLater();
+//                   slt_refreshTableData();
+//                },Qt::QueuedConnection);
 
-                connect(downloader,&BatchDownloader::sig_handelFail,this,[=](){
-                   m_progressBar.startStep4();
-                   downloader->stopAllThread();
-                   //slt_refreshTableData();
+//                connect(downloader,&BatchDownloader::sig_handelFail,this,[=](){
+//                   m_progressBar.startStep4();
+//                   downloader->stopAllThread();
+//                   //slt_refreshTableData();
 
-                   qDebug() << "======error";
-                   TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
-                   dlg->startTimer();
-                   dlg->show();
-                },Qt::QueuedConnection);
+//                   qDebug() << "======error";
+//                   TipsDlgView* dlg = new TipsDlgView("服务器连接失败", nullptr);
+//                   dlg->startTimer();
+//                   dlg->show();
+//                },Qt::QueuedConnection);
 
-                // 3. 开始下载
-                downloader->downloadImages(tasks);
+//                // 3. 开始下载
+//                downloader->downloadImages(tasks);
+
+                //添加到后台下载管理器中
+                TipsDlgView* dlg = new TipsDlgView("下载中,请稍后", nullptr);
+                dlg->startTimer();
+                dlg->show();
+                DownLoadManger::getInstance()->insertDownLoadTask(tasks);
             }
             else
             {
@@ -459,6 +471,8 @@ void DataManager::slt_requestFinishedSlot(QNetworkReply *networkReply)
            // ui->positionText->setText("服务器连接失败");
         }
         networkReply->deleteLater();
+
+        slt_refreshTableData();
     }
 }
 
@@ -554,6 +568,23 @@ void DataManager::slt_exportTableData()
     //开始跳转导出页面
     ExportBagPage::getInstance()->setBagIds(selectedIds);
     ExportBagPage::getInstance()->show();
+}
+
+void DataManager::slt_updateTableData(QString bagId, QString text)
+{
+    int nCount = ui->tableWidget->rowCount();
+    for (int n = 0; n < nCount;n++)
+    {
+       if(ui->tableWidget->item(n,COLNAME::UUID) != nullptr && ui->tableWidget->item(n,COLNAME::downStatus) != nullptr)
+       {
+            QString currentBagId = ui->tableWidget->item(n,COLNAME::UUID)->text();
+            if(currentBagId == bagId)
+            {
+                ui->tableWidget->item(n,COLNAME::downStatus)->setText(text);
+                break;
+            }
+       }
+    }
 }
 
 void DataManager::getBagCounts()
@@ -750,13 +781,13 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                   recordInfo.handleStatus = status;
                }
                recordInfo.drawStatus = "--";;
-               recordInfo.downStatus = "未下载";
+               recordInfo.downStatus = DownLoadManger::getInstance()->getDownStatus(recordInfo.ID);
 
                QString folderPath = QApplication::applicationDirPath() + "/" + recordInfo.ID;
                QFileInfo fileInfo(folderPath);
                if(fileInfo.exists() && fileInfo.isDir())
                {
-                   recordInfo.downStatus = "已下载";
+                  // recordInfo.downStatus = "已下载"; todo zzd
                }
 
                //更新解析列
@@ -805,7 +836,7 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                    button->setProperty("uuid",recordInfo.ID);
                    layout2->addWidget(button);
                }
-               if(recordInfo.downStatus == "未下载" && recordInfo.handleStatus == "已解析")
+               if((recordInfo.downStatus == "未下载" || recordInfo.downStatus == "下载失败") && recordInfo.handleStatus == "已解析")
                {
                    QPushButton* button = new QPushButton(widget2);
                    connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
@@ -1017,9 +1048,9 @@ void DataManager::downLoadData(QString id)
         }
     }
 
-    m_progressBar.show();
-    m_progressBar.startStep1();
-    m_progressBar.startStep2();
+//    m_progressBar.show();
+//    m_progressBar.startStep1();
+//    m_progressBar.startStep2();
 
     //获取bag文件对应的图片列表
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
@@ -1037,7 +1068,7 @@ void DataManager::findAllBagByFolder(QString folderPath, QVector<DataManager::Re
     QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_FILE_SYSTEM_INFO,VisitType::GET,ReplyType::FILE_SYSTEM_INFO);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(3000);  // 设置超时时间 3 秒
+    timer.setInterval(1000*60);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1098,7 +1129,7 @@ void DataManager::findAllBagByFolderPath(QString folderPath, QVector<DataManager
     QNetworkReply* reply = m_restFulApi.visitUrl(requestUrl + API_LIST_BAG_INFO,VisitType::GET,ReplyType::LIST_BAG_INFO);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(10000);  // 设置超时时间 3 秒
+    timer.setInterval(1000*60);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1189,7 +1220,7 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
     reply->setProperty("bagId",bagId);
     QEventLoop loop;
     QTimer timer;
-    timer.setInterval(10000);  // 设置超时时间 3 秒
+    timer.setInterval(1000*60);  // 设置超时时间 3 秒
     timer.setSingleShot(true);  // 单次触发
     connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1246,7 +1277,7 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
             QNetworkReply* reply = m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::EVENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
             QEventLoop loop;
             QTimer timer;
-            timer.setInterval(10000);  // 设置超时时间 3 秒
+            timer.setInterval(1000*60);  // 设置超时时间 3 秒
             timer.setSingleShot(true);  // 单次触发
             connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
             connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1316,7 +1347,7 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
 
         QEventLoop loop;
         QTimer timer;
-        timer.setInterval(10000);  // 设置超时时间 3 秒
+        timer.setInterval(1000*60);  // 设置超时时间 3 秒
         timer.setSingleShot(true);  // 单次触发
         connect(&timer, &QTimer::timeout, reply, &QNetworkReply::abort);
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -1433,13 +1464,15 @@ void DataManager::resetTableColor()
                 ui->tableWidget->item(n,m)->setForeground(QColor("#00DF82"));
             }
             else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "解析中") ||
-                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "标注中"))
+                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "标注中")||
+                    (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text().contains("下载中")))
             {
                 ui->tableWidget->item(n,m)->setForeground(QColor("#FFC86B"));
             }
             else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "未解析") ||
                     (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "未标注") ||
-                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "未下载"))
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "未下载") ||
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "下载失败"))
             {
                 ui->tableWidget->item(n,m)->setForeground(QColor(255,0,0));
             }

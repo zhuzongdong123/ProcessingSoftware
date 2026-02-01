@@ -135,6 +135,7 @@ bool MySqlite::initTable(QString sTableName, QStringList sNameList, QStringList 
             return result;
         }
     }
+    return true;
 }
 
 bool MySqlite::insertDataForBase(QString sTableName, QMap<QString, QString> data, bool isOpenTransaction)
@@ -479,4 +480,52 @@ QSqlDatabase &MySqlite::getDB()
 {
     QMutexLocker locker(&m_mutex);
     return m_db;
+}
+
+bool MySqlite::batchUpdateIsSyn(const QStringList& idList) {
+    QMutexLocker locker(&m_mutex);
+    if(!m_db.isOpen())
+        return false;
+
+    // 空集合直接返回，避免执行无效SQL
+    if (idList.isEmpty()) {
+        qWarning() << "id集合为空，无需执行更新操作";
+        return true;
+    }
+
+    // 1. 生成参数占位符（如:id1,:id2,:id3）
+    QStringList placeholders;
+    for (int i = 0; i < idList.size(); ++i) {
+        placeholders.append(QString(":id%1").arg(i));
+    }
+
+    // 2. 构建参数化SQL语句
+    QString sql = QString(R"(
+        UPDATE plotting_record
+        SET isSyn = 1
+        WHERE id IN (%1)
+    )").arg(placeholders.join(","));
+
+    // 3. 准备查询并绑定参数
+    QSqlQuery query;
+    query  = QSqlQuery(m_db);
+    if (!query.prepare(sql)) {
+        qCritical() << "SQL语句预处理失败：" << query.lastError().text();
+        return false;
+    }
+
+    // 绑定每个id到对应的占位符
+    for (int i = 0; i < idList.size(); ++i) {
+        query.bindValue(QString(":id%1").arg(i), idList.at(i));
+    }
+
+    // 4. 执行更新并返回结果
+    if (query.exec()) {
+        int affectedRows = query.numRowsAffected();
+        qInfo() << "批量更新成功，共修改" << affectedRows << "条记录";
+        return true;
+    } else {
+        qCritical() << "批量更新失败：" << query.lastError().text();
+        return false;
+    }
 }

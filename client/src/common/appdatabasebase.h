@@ -31,7 +31,7 @@ public:
     QString m_userType;
     QString m_serverIp;
     QString m_businessIp = "127.0.0.1";
-    QString m_businessPort;
+    QString m_businessPort = "8083";
     QString m_bagPort;
 };
 

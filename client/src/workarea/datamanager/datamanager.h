@@ -68,6 +68,7 @@ private slots:
     void slt_operateBtnClicked();
     void slt_refreshTableData();
     void slt_exportTableData();
+    void slt_updateTableData(QString bagId,QString text);
 
 private:
     Ui::DataManager *ui;

@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include "appdatabasebase.h"
 #include "appeventbase.h"
+#include "dynamicplottinglisten.h"
 
 TitleBar::TitleBar(QWidget *parent) :
     QWidget(parent),
@@ -18,6 +19,10 @@ TitleBar::TitleBar(QWidget *parent) :
     QTimer* timer = new QTimer(this);
     connect(timer,&QTimer::timeout,this,[=](){
         ui->system->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+    });
+
+    connect(DynamicPlottingListen::getInstance(),&DynamicPlottingListen::sig_sendMsgTip,this,[=](QString msg){
+        ui->tip->setText(msg);
     });
 
     connect(AppEventBase::getInstance(),&AppEventBase::sig_sendServerStatus,this,[=](bool status){

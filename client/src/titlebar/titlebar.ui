@@ -119,6 +119,13 @@ QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,2
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="tip">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

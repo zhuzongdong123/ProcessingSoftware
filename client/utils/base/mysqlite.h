@@ -102,6 +102,10 @@ public:
     QSqlDatabase& getDB();
 
     static MySqlite *getInstance();
+
+    //单独定制的接口
+    bool batchUpdateIsSyn(const QStringList &idList);
+
 signals:
 
 private:
