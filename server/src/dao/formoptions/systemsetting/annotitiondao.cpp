@@ -1,5 +1,7 @@
 ﻿#include "annotitiondao.h"
 #include <QUuid>
+#include <QJsonDocument>
+#include <QDebug>
 
 AnnotitionDao::AnnotitionDao()
 {
@@ -149,6 +151,119 @@ bool AnnotitionDao::addEvents(QJsonObject objData)
         return result;
     }
     return true;
+}
+
+bool AnnotitionDao::addPlottingEvent(QJsonObject objData)
+{
+    QJsonArray array = objData.value("data").toArray();
+    if(array.size() == 0)
+    {
+        return true;
+    }
+
+    for(auto data : array)
+    {
+        QJsonObject currentObj = data.toObject();
+        QString bagId = currentObj.value("bagId").toString();
+        QString imageId = currentObj.value("imageId").toString();
+        QString bagData = currentObj.value("data").toString();
+
+        if(bagId.isEmpty() || imageId.isEmpty())
+        {
+            continue;
+        }
+
+        QJsonArray arrayTemp;
+        QJsonObject objWhereTemp;
+        objWhereTemp.insert("bag_id",bagId);
+        objWhereTemp.insert("image_id",imageId);
+        bool result = getAllEvents(objWhereTemp, arrayTemp);
+        if(result)
+        {
+            if(arrayTemp.size() == 0)
+            {
+               //直接新增
+                QMap<QString, QVariantList> data;
+                data.insert("bag_id",QVariantList() << QVariant(bagId));
+                data.insert("image_id",QVariantList() << QVariant(imageId));
+                data.insert("data",QVariantList() << QVariant(bagData));
+                insertDataForBaseList("events",data);
+            }
+            //更新数据
+            else
+            {
+                QJsonObject obj = arrayTemp[0].toObject();
+                QString bagDataTemp = obj.value("data").toString();
+                QJsonArray bagDataOldArray = QJsonDocument::fromJson(bagDataTemp.toUtf8()).array();
+                QJsonArray bagDataInsertArray = QJsonDocument::fromJson(bagData.toUtf8()).array();
+                QJsonArray bagDataNewArray;
+                for(auto temp : bagDataOldArray)
+                {
+                    bagDataNewArray.push_back(temp);
+                }
+                for(auto temp : bagDataInsertArray)
+                {
+                    //判断是否存在当前的标绘结果，不包含的话插入
+                    if(!checkIsExit(bagDataNewArray,temp.toObject()))
+                    {
+                        bagDataNewArray.push_back(temp);
+                    }
+                }
+
+                //删除
+                QMap<QString, QVariant> whereMap;
+                whereMap.insert("bag_id",bagId);
+                whereMap.insert("image_id",imageId);
+                deleteDataForBase("events", whereMap);
+
+                QMap<QString, QVariantList> data;
+                data.insert("bag_id",QVariantList() << QVariant(bagId));
+                data.insert("image_id",QVariantList() << QVariant(imageId));
+
+                QJsonDocument document;
+                QByteArray post_param;
+                document.setArray(bagDataNewArray);
+                post_param = document.toJson(QJsonDocument::Compact);
+                QString bagData = post_param;
+                data.insert("data",QVariantList() << QVariant(bagData));
+
+                insertDataForBaseList("events",data);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool AnnotitionDao::checkIsExit(QJsonArray allArray, QJsonObject currentData)
+{
+    QMap<QString,QString> allMap;
+    for(auto dataObj : allArray)
+    {
+        QString key = QString("%1,%2,%3,%4,%5")
+                .arg(dataObj.toObject().value("event_type").toString())
+                .arg(dataObj.toObject().value("x1").toInt())
+                .arg(dataObj.toObject().value("x2").toInt())
+                .arg(dataObj.toObject().value("y1").toInt())
+                .arg(dataObj.toObject().value("y2").toInt());
+        allMap.insert(key,key);
+    }
+
+    QString currentKey = QString("%1,%2,%3,%4,%5")
+            .arg(currentData.value("event_type").toString())
+            .arg(currentData.value("x1").toInt())
+            .arg(currentData.value("x2").toInt())
+            .arg(currentData.value("y1").toInt())
+            .arg(currentData.value("y2").toInt());
+
+    if(allMap.find(currentKey) != allMap.end())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool AnnotitionDao::getAllEvents(QJsonObject objWhere, QJsonArray& array)

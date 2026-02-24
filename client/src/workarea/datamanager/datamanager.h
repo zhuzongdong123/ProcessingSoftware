@@ -30,6 +30,7 @@ public:
         QString handleStatus = "--";
         QString drawStatus = "--";
         QString downStatus = "--";
+        QString AiMapping = "--";//智能标绘
         QString drawPerson;
         QString drawStartTime;
 //        QString drawEndTime;
@@ -50,6 +51,7 @@ public:
         downStatus,
         drawPerson,
         drawStartTime,
+        AiMappingStatus,
 //        drawEndTime,
         dataFrom,
         memory,
@@ -68,7 +70,8 @@ private slots:
     void slt_operateBtnClicked();
     void slt_refreshTableData();
     void slt_exportTableData();
-    void slt_updateTableData(QString bagId,QString text);
+    void slt_updateTableDownloadData(QString bagId,QString text);
+    void slt_updateTableAIMappingData(QString bagId,QString text);
 
 private:
     Ui::DataManager *ui;

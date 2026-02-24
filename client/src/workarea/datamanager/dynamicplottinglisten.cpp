@@ -55,23 +55,24 @@ void DynamicPlottingListen::slt_rcvPlottingResult(QJsonObject obj)
     if(!obj.value("request_id").toString().isEmpty())
     {
         m_isRunning = true;
-        m_timer.start(1000*15);//15秒后收不到数据，设置为标绘结束
+        m_timer.start(1000*20);//15秒后收不到数据，设置为标绘结束
 
         //获取进度
         double step = obj.value("step").toDouble();
         QString status_code = obj.value("status_code").toString();
 
         //组装提示语
-        QString msg = QString("智能标绘进度: %1%").arg(QString::number(step,'f',2));
+        QString msg = QString("AI标绘进度: %1%").arg(QString::number(step,'f',2));
         //向外界发送处理进度
-        emit sig_sendMsgTip(msg);
+        emit sig_sendMsgTip(m_bagId, msg);
 
         //判断是否处理完成
         if(status_code == "handled" || fabs(step-100) < 1e-5)
         {
             m_isRunning = false;
             m_timer.stop();
-            emit sig_sendMsgTip("");
+            emit sig_sendMsgTip(m_bagId, "标绘完成");
+            emit sig_sendHandledFlag(m_bagId);
         }
 
         //智能识别有结果的场合

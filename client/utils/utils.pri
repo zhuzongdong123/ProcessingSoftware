@@ -12,6 +12,7 @@ HEADERS += \
     $$PWD/base/mysqlite.h \
     $$PWD/base/scaletextitem.h \
     $$PWD/base/widgetbase.h \
+    $$PWD/downloadmanager/aimappingmanager.h \
     $$PWD/downloadmanager/downloadmanger.h
 
 SOURCES += \
@@ -23,6 +24,7 @@ SOURCES += \
     $$PWD/base/mysqlite.cpp \
     $$PWD/base/scaletextitem.cpp \
     $$PWD/base/widgetbase.cpp \
+    $$PWD/downloadmanager/aimappingmanager.cpp \
     $$PWD/downloadmanager/downloadmanger.cpp
 
 INCLUDEPATH += $$PWD

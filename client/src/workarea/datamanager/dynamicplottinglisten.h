@@ -23,7 +23,8 @@ public:
     void slt_rcvPlottingResult(QJsonObject obj);
 
 signals:
-    void sig_sendMsgTip(QString tip);
+    void sig_sendMsgTip(QString bagId, QString tip);
+    void sig_sendHandledFlag(QString bagId);//处理完成的标识
     void sig_sendPlottingResult(QString bagId,QString imageId,QJsonObject result);
 
 private:

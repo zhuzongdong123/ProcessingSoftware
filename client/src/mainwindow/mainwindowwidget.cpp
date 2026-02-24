@@ -16,6 +16,7 @@ MainWindowWidget::MainWindowWidget(QWidget *parent) :
     //创建数据库
     createDBTable("annotation_record");
     createDBTable("download_record");
+    createDBTable("AiMappingTask_record");
     createDBTable("plotting_record");
 }
 
@@ -123,6 +124,12 @@ bool MainWindowWidget::createDBTable(QString tableName)
     }
     //下载记录表
     else if(tableName == "download_record")
+    {
+        sNameList << "id" << "bag_id" << "bag_name" << "start_time" << "end_time" << "step" << "status" << "type";
+        sType << "varchar(36)" << "varchar(36)" << "varchar(256)" << "varchar(36)" << "varchar(36)" << "varchar(10)" << "varchar(1)" << "varchar(1)";
+    }
+    //智能标绘任务表
+    else if(tableName == "AiMappingTask_record")
     {
         sNameList << "id" << "bag_id" << "bag_name" << "start_time" << "end_time" << "step" << "status" << "type";
         sType << "varchar(36)" << "varchar(36)" << "varchar(256)" << "varchar(36)" << "varchar(36)" << "varchar(10)" << "varchar(1)" << "varchar(1)";

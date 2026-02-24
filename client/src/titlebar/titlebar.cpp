@@ -21,9 +21,9 @@ TitleBar::TitleBar(QWidget *parent) :
         ui->system->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
     });
 
-    connect(DynamicPlottingListen::getInstance(),&DynamicPlottingListen::sig_sendMsgTip,this,[=](QString msg){
-        ui->tip->setText(msg);
-    });
+//    connect(DynamicPlottingListen::getInstance(),&DynamicPlottingListen::sig_sendMsgTip,this,[=](QString bagId, QString msg){
+//        ui->tip->setText(msg);
+//    });
 
     connect(AppEventBase::getInstance(),&AppEventBase::sig_sendServerStatus,this,[=](bool status){
         ui->serverError->setVisible(!status);

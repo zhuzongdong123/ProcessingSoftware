@@ -41,6 +41,10 @@ public:
     //新增事件
     bool addEvents(QJsonObject objData);
 
+    //新增标绘事件
+    bool addPlottingEvent(QJsonObject objData);
+    bool checkIsExit(QJsonArray allArray, QJsonObject currentData);
+
     //获取所有的事件
     bool getAllEvents(QJsonObject objWhere, QJsonArray& array);
 

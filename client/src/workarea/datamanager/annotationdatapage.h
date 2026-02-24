@@ -100,6 +100,7 @@ private slots:
     void slt_imageLoadSuccessed(QString filePath);
     void slt_mousePressedImage(QJsonObject obj);
     void slt_watcherFinished();
+    void slt_eventDisplayChanged();
     void slt_btnClicked();
     void slt_dynamicPlottingBtn();
 };

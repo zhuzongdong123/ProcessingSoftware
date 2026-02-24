@@ -32,6 +32,7 @@
         <file>resources/image/download2.png</file>
         <file>resources/image/export2.png</file>
         <file>resources/image/download3.png</file>
+        <file>resources/image/back.png</file>
     </qresource>
     <qresource prefix="/qss"/>
 </RCC>

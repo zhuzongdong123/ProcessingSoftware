@@ -12,6 +12,7 @@
 #include "httpserver.h"
 #include "dynamicplottinglisten.h"
 #include "mysqlite.h"
+#include "downloadmanager/aimappingmanager.h"
  
 LoginWidget::LoginWidget(QWidget *parent) : 
     QWidget(parent), 
@@ -32,7 +33,6 @@ LoginWidget::LoginWidget(QWidget *parent) :
     
     // 设置窗口属性 
     setWindowTitle("登录"); 
-    setFixedSize(800, 500); 
     
     // 加载保存的设置 
     loadSettings(); 
@@ -48,13 +48,14 @@ LoginWidget::LoginWidget(QWidget *parent) :
     //读取配置文件
     AppConfigBase::getInstance()->readConfig();
     AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
-    AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
+    AppDatabaseBase::getInstance()->m_businessIp = "127.0.0.1";
     AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
     AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
 
     HttpServer::getInstance()->initializeHttpServer();
     connect(HttpServer::getInstance(),&HttpServer::sig_sendRcvmsg,DynamicPlottingListen::getInstance(),&DynamicPlottingListen::slt_rcvPlottingResult,Qt::QueuedConnection);
     MySqlite::getInstance()->createDB(QApplication::applicationDirPath() + "/" + QApplication::applicationName());
+    AiMappingManager::getInstance();
 } 
  
 LoginWidget::~LoginWidget() 
@@ -229,7 +230,7 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
                 AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
                 AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
-                AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
+                AppDatabaseBase::getInstance()->m_businessIp = "127.0.0.1";
                 AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
                 AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
 

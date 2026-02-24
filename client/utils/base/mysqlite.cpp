@@ -466,12 +466,12 @@ bool MySqlite::execSQL(QSqlQuery &queryResult, QString sql)
 
     //操作结束的时间戳
     QString timestampEnd = QString::number(QDateTime::currentMSecsSinceEpoch());
-    qDebug() << sql;
+    //qDebug() << sql;
 
     if(!result)
         qDebug() << "execSQL: " << "操作失败!" << m_db.lastError() << "响应时间(毫秒): " << QString::number(timestampEnd.toLongLong() - timestampStart.toLongLong()) << sql;
-    else
-        qDebug() << "execSQL: " << "操作成功!" << "响应时间(毫秒): " << QString::number(timestampEnd.toLongLong() - timestampStart.toLongLong());;
+   // else
+        //qDebug() << "execSQL: " << "操作成功!" << "响应时间(毫秒): " << QString::number(timestampEnd.toLongLong() - timestampStart.toLongLong());;
 
     return result;
 }

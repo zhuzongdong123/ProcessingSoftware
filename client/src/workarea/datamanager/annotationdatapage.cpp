@@ -78,9 +78,58 @@ AnnotationDataPage::AnnotationDataPage(QWidget *parent) :
     connect(ui->dynamicPlottingBtn,&QPushButton::clicked,this,[=](){
        slt_dynamicPlottingBtn();
     });
+    ui->dynamicPlottingBtn->hide();
 
     m_watcher = new QFutureWatcher<QPixmap>();
     connect(m_watcher, &QFutureWatcher<QPixmap>::finished, this, &AnnotationDataPage::slt_watcherFinished,Qt::QueuedConnection);//队列连接
+
+    connect(ui->leftEvents,&QCheckBox::clicked,this,[=](){
+         QList<QCheckBox*> btns = ui->leftEventsWidget->findChildren<QCheckBox*>();
+         bool isChecked = ui->leftEvents->isChecked();
+         for(auto btn : btns)
+         {
+             if(btn != ui->leftEvents)
+             {
+                 btn->setChecked(isChecked);
+             }
+         }
+
+         slt_eventDisplayChanged();
+    });
+
+    connect(ui->rightEvents,&QCheckBox::clicked,this,[=](){
+         QList<QCheckBox*> btns = ui->rightEventsWidget->findChildren<QCheckBox*>();
+         bool isChecked = ui->rightEvents->isChecked();
+         for(auto btn : btns)
+         {
+             if(btn != ui->rightEvents)
+             {
+                 btn->setChecked(isChecked);
+             }
+         }
+
+         slt_eventDisplayChanged();
+    });
+
+    QList<QCheckBox*> btns = ui->leftEventsWidget->findChildren<QCheckBox*>();
+    for(auto btn : btns)
+    {
+        if(btn != ui->leftEvents)
+        {
+            connect(btn, &QCheckBox::clicked, this, &AnnotationDataPage::slt_eventDisplayChanged);
+        }
+    }
+
+    btns = ui->rightEventsWidget->findChildren<QCheckBox*>();
+    for(auto btn : btns)
+    {
+        if(btn != ui->rightEvents)
+        {
+            connect(btn, &QCheckBox::clicked, this, &AnnotationDataPage::slt_eventDisplayChanged);
+        }
+    }
+
+    slt_eventDisplayChanged();
 }
 
 AnnotationDataPage::~AnnotationDataPage()
@@ -503,6 +552,67 @@ void AnnotationDataPage::slt_mousePressedImage(QJsonObject obj)
 void AnnotationDataPage::slt_watcherFinished()
 {
 
+}
+
+QString extractLeftPart(const QString& input) {
+    // 查找左括号位置
+    int leftBracketPos = input.indexOf('(');
+
+    // 处理三种情况
+    if (leftBracketPos == -1) {
+        qDebug() << "未找到括号，返回原字符串";
+        return input;
+    } else if (leftBracketPos == 0) {
+        qDebug() << "括号在开头，返回空字符串";
+        return QString();
+    } else {
+        // 截取括号左侧部分并去除尾部空格
+        return input.left(leftBracketPos).trimmed();
+    }
+}
+
+void AnnotationDataPage::slt_eventDisplayChanged()
+{
+    QStringList displayEventsName;
+    {
+        QList<QCheckBox*> btns = ui->leftEventsWidget->findChildren<QCheckBox*>();
+        bool isChecked = true;
+        for(auto btn : btns)
+        {
+            if(btn != ui->leftEvents)
+            {
+                if(!btn->isChecked())
+                    isChecked = false;
+
+                if(btn->isChecked())
+                {
+                    displayEventsName.append(extractLeftPart(btn->text()));
+                }
+            }
+        }
+        ui->leftEvents->setChecked(isChecked);
+    }
+
+    {
+        QList<QCheckBox*> btns = ui->rightEventsWidget->findChildren<QCheckBox*>();
+        bool isChecked = true;
+        for(auto btn : btns)
+        {
+            if(btn != ui->rightEvents)
+            {
+                if(!btn->isChecked())
+                    isChecked = false;
+            }
+
+            if(btn->isChecked())
+            {
+                displayEventsName.append(extractLeftPart(btn->text()));
+            }
+        }
+        ui->rightEvents->setChecked(isChecked);
+    }
+
+    ui->imagePreviewWidget->setDisplayEventsName(displayEventsName);
 }
 
 void AnnotationDataPage::slt_btnClicked()

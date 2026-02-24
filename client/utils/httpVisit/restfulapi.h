@@ -96,6 +96,7 @@ enum ReplyType
     CURRENT_IMAGE_DETIAL_GET,
     POINT_IMAGE_DETIAL_GET,
     EVENT_IMAGE_DETIAL_GET,
+    EVENT_IMAGE_DETIAL_GET2,
     IDENTITY_AUTHENTICATION_PAGELIST,
     IDENTITY_AUTHENTICATION_ADD,
     IDENTITY_AUTHENTICATION_DEL,
@@ -112,6 +113,7 @@ enum ReplyType
     parase_bags,
     ORIENTATION,
     dynamicPlotting,
+    dynamicPlotting2,
 };
 
 enum class VisitType

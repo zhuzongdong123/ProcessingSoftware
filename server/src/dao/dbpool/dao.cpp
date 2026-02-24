@@ -386,6 +386,7 @@ QJsonArray DAO::queryDataForBase(QString sTableName, QList<QString> filed, QMap<
             for (int i = 0; i < query.record().count(); ++i)
             {
                 QString fileName = query.record().fieldName(i);
+                QJsonValue value = query.value(fileName).toJsonValue();
                 obj.insert(fileName,query.value(fileName).toJsonValue());
             }
             ret.push_back(obj);

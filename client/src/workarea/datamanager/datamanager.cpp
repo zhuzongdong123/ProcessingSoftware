@@ -10,6 +10,9 @@
 #include "appconfigbase.h"
 #include "appcommonbase.h"
 #include "downloadmanager/downloadmanger.h"
+#include "downloadmanager/aimappingmanager.h"
+#include "dynamicplottinglisten.h"
+#include "mysqlite.h"
 
 QString value2AnnotationName(QString value)
 {
@@ -41,7 +44,8 @@ DataManager::DataManager(QWidget *parent) :
     connect(&this->m_restFulApi.getAccessManager(), &QNetworkAccessManager::finished, this, &DataManager::slt_requestFinishedSlot);
     connect(ui->refreshBtn, &QPushButton::clicked, this, &DataManager::slt_refreshTableData);
     connect(ui->exportBtn, &QPushButton::clicked, this, &DataManager::slt_exportTableData);
-    connect(DownLoadManger::getInstance(),&DownLoadManger::sig_sendDownLoadStep,this,&DataManager::slt_updateTableData);
+    connect(DownLoadManger::getInstance(),&DownLoadManger::sig_sendDownLoadStep,this,&DataManager::slt_updateTableDownloadData);
+    connect(DynamicPlottingListen::getInstance(),&DynamicPlottingListen::sig_sendMsgTip,this,&DataManager::slt_updateTableAIMappingData);
 
     QTimer* timer = new QTimer(this);
     connect(timer,&QTimer::timeout,this,[=](){
@@ -53,6 +57,9 @@ DataManager::DataManager(QWidget *parent) :
 
     //下载管理器初始化
     DownLoadManger::getInstance();
+
+    // 设置表格为不可编辑状态（双击、回车键等均失效）
+    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
 DataManager::~DataManager()
@@ -499,6 +506,25 @@ void DataManager::slt_operateBtnClicked()
         else if("下载" == operateName)
         {
             downLoadData(id);
+
+//            QString tempId = "id"; // 假设已赋值
+//            QTimer::singleShot(2000, this, [this, tempId]() { // 显式捕获 tempId 副本
+//                resetCurrentBagEvents(tempId);
+//            });
+        }
+        else if("AI标绘" == operateName)
+        {
+            tipsdlgviewForSure box("是否AI标绘当前数据？",nullptr);
+            if(box.windowExec() == 1)
+            {
+                return;
+            }
+
+            AiMappingManager::getInstance()->insertDownLoadTask(id);
+
+            QTimer::singleShot(200, this, [this]() {
+                slt_refreshTableData();
+            });
         }
     }
 }
@@ -570,7 +596,7 @@ void DataManager::slt_exportTableData()
     ExportBagPage::getInstance()->show();
 }
 
-void DataManager::slt_updateTableData(QString bagId, QString text)
+void DataManager::slt_updateTableDownloadData(QString bagId, QString text)
 {
     int nCount = ui->tableWidget->rowCount();
     for (int n = 0; n < nCount;n++)
@@ -581,6 +607,23 @@ void DataManager::slt_updateTableData(QString bagId, QString text)
             if(currentBagId == bagId)
             {
                 ui->tableWidget->item(n,COLNAME::downStatus)->setText(text);
+                break;
+            }
+       }
+    }
+}
+
+void DataManager::slt_updateTableAIMappingData(QString bagId, QString text)
+{
+    int nCount = ui->tableWidget->rowCount();
+    for (int n = 0; n < nCount;n++)
+    {
+       if(ui->tableWidget->item(n,COLNAME::UUID) != nullptr && ui->tableWidget->item(n,COLNAME::AiMappingStatus) != nullptr)
+       {
+            QString currentBagId = ui->tableWidget->item(n,COLNAME::UUID)->text();
+            if(currentBagId == bagId)
+            {
+                ui->tableWidget->item(n,COLNAME::AiMappingStatus)->setText(text);
                 break;
             }
        }
@@ -662,6 +705,29 @@ void DataManager::getAllAnnotationStatus()
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
     this->m_restFulApi.getPostData().clear();
     m_restFulApi.visitUrl(requestUrl + API_BAG_ANNOTATION_STATUS_GET_ALL,VisitType::GET,ReplyType::BAG_ANNOTATION_STATUS_GET_ALL);
+
+    //获取所有的历史任务
+    QString sql = QString("SELECT bag_id,status FROM AiMappingTask_record");
+    QSqlQuery queryResult;
+    bool result = MySqlite::getInstance()->execSQL(queryResult,sql);
+    while (result && queryResult.next())
+    {
+        QString bagId = queryResult.value(0).toString(); // 索引0表示第一个字段（即status）
+        QString status = queryResult.value(1).toString(); // 索引0表示第一个字段（即status）
+
+        int nCount = ui->tableWidget->rowCount();
+        for (int n = 0; n < nCount;n++)
+        {
+            if(nullptr == ui->tableWidget->item(n,COLNAME::AiMappingStatus) || nullptr == ui->tableWidget->item(n,COLNAME::UUID))
+                continue;
+
+            if(ui->tableWidget->item(n,COLNAME::UUID)->text().toInt() == bagId.toInt())
+            {
+                ui->tableWidget->item(n,COLNAME::AiMappingStatus)->setText(status);
+                break;
+            }
+        }
+    }
 }
 
 void DataManager::clearTable()
@@ -693,6 +759,7 @@ void DataManager::initTable()
     labelList << "序号"<< "组名称"<< "文件名称"<< "文件路径"<< "创建时间"<< "解析状态"
               << "标注状态" << "下载状态"
               << "标注人"<< "标注时间"
+                 << "AI标绘"
               << "数据来源"<< "占用空间"<< "操作"<< "UUID";
     ui->tableWidget->setColumnCount(labelList.size());
     ui->tableWidget->setHorizontalHeaderLabels(labelList);
@@ -728,7 +795,9 @@ void DataManager::initTable()
     setTableProperty(COLNAME::ID,60);
     //setTableProperty(COLNAME::createTime,250);
     setTableProperty(COLNAME::filePath,300);
-    setTableProperty(COLNAME::operation,160);
+    setTableProperty(COLNAME::createTime,120);
+    setTableProperty(COLNAME::drawStartTime,120);
+    setTableProperty(COLNAME::operation,230);
 }
 
 void DataManager::resetTableInfo(QJsonObject objResult)
@@ -782,6 +851,7 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                }
                recordInfo.drawStatus = "--";;
                recordInfo.downStatus = DownLoadManger::getInstance()->getDownStatus(recordInfo.ID);
+               recordInfo.AiMapping = "未标绘";
 
                QString folderPath = QApplication::applicationDirPath() + "/" + recordInfo.ID;
                QFileInfo fileInfo(folderPath);
@@ -820,6 +890,12 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                    ui->tableWidget->item(n,COLNAME::drawStartTime)->setText(recordInfo.drawStartTime);
                }
 
+               //更新标绘列
+               if(nullptr != ui->tableWidget->item(n,COLNAME::AiMappingStatus))
+               {
+                   ui->tableWidget->item(n,COLNAME::AiMappingStatus)->setText(recordInfo.AiMapping);
+               }
+
                //添加操作列
                QWidget *widget2 = new QWidget(ui->tableWidget);
                widget2->setStyleSheet("QWidget{background:transparent;} QPushButton{color: #33B8FF}");
@@ -844,6 +920,18 @@ void DataManager::resetTableInfo(QJsonObject objResult)
                    button->setCursor(Qt::PointingHandCursor);
                    button->setFixedSize(40,30);
                    button->setText("下载");
+                   button->setProperty("uuid",recordInfo.ID);
+                   layout2->addWidget(button);
+               }
+
+               if((recordInfo.AiMapping != "标绘中" || recordInfo.AiMapping == "标绘完成") && recordInfo.handleStatus == "已解析")
+               {
+                   QPushButton* button = new QPushButton(widget2);
+                   connect(button,&QPushButton::clicked,this,&DataManager::slt_operateBtnClicked);
+                   button->setFocusPolicy(Qt::NoFocus);
+                   button->setCursor(Qt::PointingHandCursor);
+                   button->setFixedSize(70,30);
+                   button->setText("AI标绘");
                    button->setProperty("uuid",recordInfo.ID);
                    layout2->addWidget(button);
                }
@@ -1200,6 +1288,7 @@ void DataManager::displayTable()
         ui->tableWidget->setItem(rowIndex,COLNAME::drawStatus,new QTableWidgetItem(space + recordInfo.drawStatus));
         ui->tableWidget->setItem(rowIndex,COLNAME::drawPerson,new QTableWidgetItem(space + recordInfo.drawPerson));
         ui->tableWidget->setItem(rowIndex,COLNAME::drawStartTime,new QTableWidgetItem(space + recordInfo.drawStartTime));
+        ui->tableWidget->setItem(rowIndex,COLNAME::AiMappingStatus,new QTableWidgetItem(space + recordInfo.AiMapping));
 //        ui->tableWidget->setItem(rowIndex,COLNAME::drawEndTime,new QTableWidgetItem(space + recordInfo.drawEndTime));
         ui->tableWidget->setItem(rowIndex,COLNAME::dataFrom,new QTableWidgetItem(space + recordInfo.dataFrom));
         ui->tableWidget->setItem(rowIndex,COLNAME::memory,new QTableWidgetItem(space + recordInfo.memory));
@@ -1213,6 +1302,7 @@ void DataManager::displayTable()
 
 bool DataManager::resetCurrentBagEvents(QString bagId)
 {
+    qDebug() << "迁移标记时间 start" << bagId;
     //获取bag文件对应的图片列表
     QString requestUrl = AppDatabaseBase::getInstance()->getBagServerUrl();
     this->m_restFulApi.getPostData().clear();
@@ -1274,7 +1364,7 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
         {
             this->m_restFulApi.getPostData().clear();
             QString url = requestUrl + QString(API_EVENT_IMAGE_DETIAL_GET).arg(bagId).arg(imageId);
-            QNetworkReply* reply = m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::EVENT_IMAGE_DETIAL_GET,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
+            QNetworkReply* reply = m_restFulApi.visitUrl(url,VisitType::GET,ReplyType::EVENT_IMAGE_DETIAL_GET2,"application/x-www-form-urlencoded",nullptr,true,8000,QNetworkRequest::Priority::HighPriority);
             QEventLoop loop;
             QTimer timer;
             timer.setInterval(1000*60);  // 设置超时时间 3 秒
@@ -1296,8 +1386,8 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
                     QJsonArray array = objData.value("events").toArray();
                     if(array.size() > 0)
                     {
-                        eventObj.insert("bag_id",bagId);
-                        eventObj.insert("image_id",imageId);
+                        eventObj.insert("bagId",bagId);
+                        eventObj.insert("imageId",imageId);
                         QJsonArray dataArrayTemp;
                         for(auto eventObj : array)
                         {
@@ -1330,6 +1420,8 @@ bool DataManager::resetCurrentBagEvents(QString bagId)
             reply->deleteLater();
         }
     }
+
+    qDebug() << "迁移标记时间 end" << insertArray.size();
 
     //迁移数据存在的时候，插入到业务数据库中
     if(insertArray.size() > 0)
@@ -1459,7 +1551,8 @@ void DataManager::resetTableColor()
             //解析或者标注状态
             if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "已解析") ||
                     (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "已标注") ||
-                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "已下载"))
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "已下载") ||
+                    (COLNAME::AiMappingStatus == m && ui->tableWidget->item(n,m)->text() == "标绘完成"))
             {
                 ui->tableWidget->item(n,m)->setForeground(QColor("#00DF82"));
             }
@@ -1472,7 +1565,8 @@ void DataManager::resetTableColor()
             else if((COLNAME::handleStatus == m && ui->tableWidget->item(n,m)->text() == "未解析") ||
                     (COLNAME::drawStatus == m && ui->tableWidget->item(n,m)->text() == "未标注") ||
                     (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "未下载") ||
-                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "下载失败"))
+                    (COLNAME::downStatus == m && ui->tableWidget->item(n,m)->text() == "下载失败") ||
+                    (COLNAME::AiMappingStatus == m && ui->tableWidget->item(n,m)->text() == "未标绘"))
             {
                 ui->tableWidget->item(n,m)->setForeground(QColor(255,0,0));
             }

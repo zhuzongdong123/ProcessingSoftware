@@ -60,7 +60,16 @@ void Annotition::service(HttpRequest &request, HttpResponse &response)
     }
     else if("addEvent" == strAction) //增加
     {
-        result = dao.addEvents(obj);
+        result = dao.addPlottingEvent(obj);
+        if(!result)
+        {
+            msg = dao.m_lastError;
+            code = 500;
+        }
+    }
+    else if("addPlottingEvent" == strAction) //增加
+    {
+        result = dao.addPlottingEvent(obj);
         if(!result)
         {
             msg = dao.m_lastError;

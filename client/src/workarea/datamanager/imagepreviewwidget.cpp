@@ -138,6 +138,11 @@ bool ImagePreviewWidget::setDrawType(ImagePreviewWidget::DRAW_TYPE type)
     return true;
 }
 
+void ImagePreviewWidget::setDisplayEventsName(QStringList displayEventsName)
+{
+    m_displayEventsName = displayEventsName;
+}
+
 void ImagePreviewWidget::showEvent(QShowEvent *event)
 {
     showTipLabel("预览模式");
@@ -390,6 +395,7 @@ void ImagePreviewWidget::drawFromCache()
             annotation.rect->setPen(pen);
             //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
             scene()->addItem(annotation.rect);
+            annotation.rect->setVisible(m_displayEventsName.contains(text));
 
             // 创建文本项
             annotation.text  = new ScalableTextItem(text);
@@ -400,6 +406,9 @@ void ImagePreviewWidget::drawFromCache()
             font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
             annotation.text->setFont(font); // 应用到 QGraphicsTextItem
             scene()->addItem(annotation.text);
+            annotation.text->setVisible(m_displayEventsName.contains(text));
+
+
             // 添加到列表并设置当前标注
             m_rectAnnotations.append(annotation);
         }
@@ -430,6 +439,7 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         annotation.rect->setPen(pen);
         //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
         scene()->addItem(annotation.rect);
+        annotation.rect->setVisible(m_displayEventsName.contains(text));
 
         // 创建文本项
         annotation.text  = new ScalableTextItem(text);
@@ -440,6 +450,8 @@ void ImagePreviewWidget::displayRequestEvent(QJsonObject obj)
         font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
         annotation.text->setFont(font); // 应用到 QGraphicsTextItem
         scene()->addItem(annotation.text);
+        annotation.text->setVisible(m_displayEventsName.contains(text));
+
         // 添加到列表并设置当前标注
         m_rectAnnotations.append(annotation);
     }
@@ -997,6 +1009,7 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
     annotation.rect->setPen(pen);
     //annotation.rect->setFlag(QGraphicsItem::ItemIsSelectable);
     scene()->addItem(annotation.rect);
+    annotation.rect->setVisible(m_displayEventsName.contains(m_labelText));
 
     // 创建文本项
     annotation.text  = new ScalableTextItem(m_labelText);
@@ -1007,6 +1020,7 @@ void ImagePreviewWidget::createRectangle(const QPointF &startPos)
     font.setPointSize(originalFontSize);   // 设置字体大小（单位：点）
     annotation.text->setFont(font); // 应用到 QGraphicsTextItem
     scene()->addItem(annotation.text);
+    annotation.text->setVisible(m_displayEventsName.contains(m_labelText));
 
     // 添加到列表并设置当前标注
     m_rectAnnotations.append(annotation);

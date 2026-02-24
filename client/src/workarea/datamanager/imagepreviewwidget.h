@@ -217,6 +217,8 @@ public:
     //设置绘制模式
     bool setDrawType(DRAW_TYPE type);
 
+    void setDisplayEventsName(QStringList displayEventsName);
+
 public slots:
     //控制是否显示点云数据
     void slt_setDisplayPointsItem(bool isDisplay);
@@ -294,6 +296,7 @@ private:
     QSize m_imageSize;
     QString m_imageKey;
     QString m_bagId;
+    QStringList m_displayEventsName;
 
     ExtendedKeyMapper m_extendedKeyMapper;//键值对映射
     QPixmap m_pointPixmap;//点云图片
@@ -305,7 +308,6 @@ private:
     //坐标拾取
     QGraphicsItemGroup m_coorItemsGroup;
     RestFulApi m_restFulApi;
-
 private:
     QPointF getLonLatFromServer(QPointF pos);
     QString getScaleFromServer(QPointF pos1, QPointF pos2);
