@@ -22,6 +22,8 @@ LoginWidget::LoginWidget(QWidget *parent) :
     ui->setupUi(this); 
 
     setWindowFlags(Qt::FramelessWindowHint|Qt::WindowStaysOnTopHint);
+
+    this->setAttribute(Qt::WA_TranslucentBackground);
     
     // 初始化设置 
     m_settings = new QSettings("MyCompany", "MyApp");
@@ -38,7 +40,7 @@ LoginWidget::LoginWidget(QWidget *parent) :
     loadSettings(); 
     
     // 设置初始状态 
-    ui->serverIp->setVisible(false);
+    //ui->serverIp->setVisible(false);
 
     // 在QWidget派生类的构造函数中添加
     QDesktopWidget* desktop = QApplication::desktop(); // 获取桌面部件
@@ -48,14 +50,27 @@ LoginWidget::LoginWidget(QWidget *parent) :
     //读取配置文件
     AppConfigBase::getInstance()->readConfig();
     AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
-    AppDatabaseBase::getInstance()->m_businessIp = "127.0.0.1";
+    AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
     AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
     AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
+    ui->port->setText(AppDatabaseBase::getInstance()->m_bagPort);
 
     HttpServer::getInstance()->initializeHttpServer();
     connect(HttpServer::getInstance(),&HttpServer::sig_sendRcvmsg,DynamicPlottingListen::getInstance(),&DynamicPlottingListen::slt_rcvPlottingResult,Qt::QueuedConnection);
     MySqlite::getInstance()->createDB(QApplication::applicationDirPath() + "/" + QApplication::applicationName());
     AiMappingManager::getInstance();
+
+    connect(ui->userPageBtn, &QPushButton::clicked, [=]() {
+       ui->stackedWidget->setCurrentIndex(0);
+    });
+
+    connect(ui->ipSettingBtn, &QPushButton::clicked, [=]() {
+       ui->stackedWidget->setCurrentIndex(1);
+    });
+
+    connect(ui->saveInfoBtn, &QPushButton::clicked, [=]() {
+       ui->stackedWidget->setCurrentIndex(0);
+    });
 } 
  
 LoginWidget::~LoginWidget() 
@@ -96,6 +111,7 @@ void LoginWidget::on_loginButton_clicked()
     QString username = ui->usernameEdit->text(); 
     QString password = ui->passwordEdit->text(); 
     QString serverIP = ui->serverIp->text();
+    AppDatabaseBase::getInstance()->m_bagPort = ui->port->text();
     QString port = AppConfigBase::getInstance()->readConfigSettings("port","port_business","8083");
     
     if (username.isEmpty()  || password.isEmpty())  { 
@@ -201,14 +217,14 @@ void LoginWidget::toggleServerSettings()
     animation->setDuration(300); 
     
     if (m_isServerSettingsVisible) {
-        ui->serverIp->setVisible(true);
+        //ui->serverIp->setVisible(true);
         animation->setStartValue(0); 
         animation->setEndValue(100); 
     } else { 
         animation->setStartValue(100); 
         animation->setEndValue(0); 
         connect(animation, &QPropertyAnimation::finished, [=]() { 
-            ui->serverIp->setVisible(false);
+           // ui->serverIp->setVisible(false);
         }); 
     } 
     
@@ -230,9 +246,11 @@ void LoginWidget::slt_requestFinishedSlot(QNetworkReply *networkReply)
                 AppDatabaseBase::getInstance()->m_userId = obj.value("data").toObject().value("id").toString();
                 AppDatabaseBase::getInstance()->m_userType = obj.value("data").toObject().value("type").toString();
                 AppDatabaseBase::getInstance()->m_serverIp = ui->serverIp->text();
-                AppDatabaseBase::getInstance()->m_businessIp = "127.0.0.1";
+                AppDatabaseBase::getInstance()->m_businessIp = ui->serverIp->text();
                 AppDatabaseBase::getInstance()->m_businessPort = AppConfigBase::getInstance()->readConfigSettings("server","port_business","8083");
                 AppDatabaseBase::getInstance()->m_bagPort = AppConfigBase::getInstance()->readConfigSettings("server","port_bag","8898");
+
+                AppConfigBase::getInstance()->updateConfigSetting("server","port_bag",ui->port->text());
 
                 qDebug() << "登录成功";
                 ui->errorTip->setText("登录成功");

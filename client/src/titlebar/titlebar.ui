@@ -91,7 +91,7 @@ QToolTip{border:1px solid #262E35; background-color:#3F474F; color:rgb(255,255,2
          <string notr="true">font-size:30px</string>
         </property>
         <property name="text">
-         <string>bag处理软件</string>
+         <string>Bag二次标绘软件</string>
         </property>
        </widget>
       </item>

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Bag处理软件</string>
+   <string>Bag二次标绘软件</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
