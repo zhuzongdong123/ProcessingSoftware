@@ -1,5 +1,6 @@
 ﻿#include "downloadmanger.h"
 #include "mysqlite.h"
+#include "math.h"
 
 DownLoadManger::DownLoadManger(QObject *parent) : QObject(parent)
 {

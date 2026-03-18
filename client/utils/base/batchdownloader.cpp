@@ -6,6 +6,7 @@
 // 头文件声明
 #include <QMap>
 #include <QString>
+#include "math.h"
 
 // 全局静态映射
 static QMap<QString, QString> en2cMapping;

@@ -6,6 +6,7 @@
 #include "mysqlite.h"
 #include <QUuid>
 #include <QEventLoop>
+#include "math.h"
 
 DynamicPlottingListen::DynamicPlottingListen(QObject *parent) : QObject(parent)
 {
